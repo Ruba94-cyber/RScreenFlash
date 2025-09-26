@@ -1,9 +1,0 @@
-C:\Users\paolo\Downloads\ScreenshotFlash_Advanced_WithRelease\bin\Release\ScreenshotFlash.exe
-C:\Users\paolo\Downloads\ScreenshotFlash_Advanced_WithRelease\obj\Release\ScreenshotFlash.csproj.AssemblyReference.cache
-C:\Users\paolo\Downloads\ScreenshotFlash_Advanced_WithRelease\obj\Release\ScreenshotFlash.csproj.CoreCompileInputs.cache
-C:\Users\paolo\Downloads\ScreenshotFlash_Advanced_WithRelease\obj\Release\ScreenshotFlash.exe
-C:\Users\paolo\Documents\ScreenshotFlash_Advanced - Copia\bin\Release\ScreenshotFlash.exe
-C:\Users\paolo\Documents\ScreenshotFlash_Advanced - Copia\obj\Release\ScreenshotFlash.csproj.AssemblyReference.cache
-C:\Users\paolo\Documents\ScreenshotFlash_Advanced - Copia\obj\Release\ScreenshotFlash.g.resources
-C:\Users\paolo\Documents\ScreenshotFlash_Advanced - Copia\obj\Release\ScreenshotFlash.csproj.CoreCompileInputs.cache
-C:\Users\paolo\Documents\ScreenshotFlash_Advanced - Copia\obj\Release\ScreenshotFlash.exe

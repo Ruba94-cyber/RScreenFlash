@@ -1,0 +1,10 @@
+﻿# Build artifacts
+bin/
+obj/
+# VS
+.vs/
+*.user
+*.suo
+# OS
+Thumbs.db
+.DS_Store
