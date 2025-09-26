@@ -112,26 +112,34 @@ namespace ScreenshotFlash
                 if (!Directory.Exists(folder))
                     Directory.CreateDirectory(folder);
 
-                // Cerca il numero pi� alto tra i file esistenti
+                // Cerca il numero piÃ¹ alto tra i file esistenti e genera un nome univoco
                 int counter = 1;
-                var files = Directory.GetFiles(folder, "screen_*.png");
-                foreach (string file in files)
+                foreach (string file in Directory.GetFiles(folder, "screen_*.png"))
                 {
-                    string name = Path.GetFileName(file);
-                    if (name.StartsWith("screen_"))
+                    string name = Path.GetFileNameWithoutExtension(file);
+                    if (!name.StartsWith("screen_", StringComparison.OrdinalIgnoreCase))
+                        continue;
+
+                    string remainder = name.Substring("screen_".Length);
+                    int separatorIndex = remainder.IndexOf('_');
+                    string numericPart = separatorIndex >= 0 ? remainder[..separatorIndex] : remainder;
+
+                    if (int.TryParse(numericPart, out int existing) && existing >= counter)
                     {
-                        var parts = name.Split('_');
-                        if (parts.Length > 1 && int.TryParse(parts[1], out int num))
-                        {
-                            if (num >= counter)
-                                counter = num + 1;
-                        }
+                        counter = existing + 1;
                     }
                 }
 
-                string timestamp = DateTime.Now.ToString("dd-MM-yyyy_HH'h'mm'm'ss's'");
+                string timestamp = DateTime.Now.ToString("yyyy-MM-dd_HH-mm-ss");
                 string filename = $"screen_{counter}_{timestamp}.png";
                 string filePath = Path.Combine(folder, filename);
+
+                while (File.Exists(filePath))
+                {
+                    counter++;
+                    filename = $"screen_{counter}_{timestamp}.png";
+                    filePath = Path.Combine(folder, filename);
+                }
 
                 bmp.Save(filePath, ImageFormat.Png);
             }
