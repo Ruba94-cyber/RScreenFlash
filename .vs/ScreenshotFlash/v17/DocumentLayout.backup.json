@@ -1,0 +1,85 @@
+{
+  "Version": 1,
+  "WorkspaceRootPath": "C:\\Users\\paolo\\Documents\\ScreenshotFlash_Advanced - Copia\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{00000000-0000-0000-0000-000000000000}|\u003CSolution\u003E|ScreenshotFlash||{04B8AB82-A572-4FEF-95CE-5222444B6B64}|"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{AA56E68A-0248-B00F-0561-990CED36BC73}|ScreenshotFlash.csproj|C:\\Users\\paolo\\Documents\\ScreenshotFlash_Advanced - Copia\\icon_screenshotflash.ico||{177559E0-D141-11D0-92DF-00A0C9138C45}",
+      "RelativeMoniker": "D:0:0:{AA56E68A-0248-B00F-0561-990CED36BC73}|ScreenshotFlash.csproj|solutionrelative:icon_screenshotflash.ico||{177559E0-D141-11D0-92DF-00A0C9138C45}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{AA56E68A-0248-B00F-0561-990CED36BC73}|ScreenshotFlash.csproj|C:\\Users\\paolo\\Documents\\ScreenshotFlash_Advanced - Copia\\selectionform.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{AA56E68A-0248-B00F-0561-990CED36BC73}|ScreenshotFlash.csproj|solutionrelative:selectionform.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{AA56E68A-0248-B00F-0561-990CED36BC73}|ScreenshotFlash.csproj|C:\\Users\\paolo\\Documents\\ScreenshotFlash_Advanced - Copia\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{AA56E68A-0248-B00F-0561-990CED36BC73}|ScreenshotFlash.csproj|solutionrelative:program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{AA56E68A-0248-B00F-0561-990CED36BC73}|ScreenshotFlash.csproj|c:\\users\\paolo\\documents\\screenshotflash_advanced - copia\\||{B270807C-D8C6-49EB-8EBE-8E8D566637A1}|f8d6553f-f752-4dbf-acb6-f291b744a792"
+    }
+  ],
+  "DocumentGroupContainers": [
+    {
+      "Orientation": 0,
+      "VerticalTabListWidth": 256,
+      "DocumentGroups": [
+        {
+          "DockedWidth": 200,
+          "SelectedChildIndex": 1,
+          "Children": [
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "Icon_screenshotflash.ico - Icon [256x256, 32 bit, PNG]",
+              "DocumentMoniker": "C:\\Users\\paolo\\Documents\\ScreenshotFlash_Advanced - Copia\\Icon_screenshotflash.ico",
+              "RelativeDocumentMoniker": "Icon_screenshotflash.ico",
+              "ToolTip": "C:\\Users\\paolo\\Documents\\ScreenshotFlash_Advanced - Copia\\Icon_screenshotflash.ico - Icon [256x256, 32 bit, PNG]",
+              "RelativeToolTip": "Icon_screenshotflash.ico - Icon [256x256, 32 bit, PNG]",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001525|",
+              "WhenOpened": "2025-04-07T12:19:45.575Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "ScreenshotFlash",
+              "DocumentMoniker": "C:\\Users\\paolo\\Documents\\ScreenshotFlash_Advanced - Copia\\ScreenshotFlash.csproj",
+              "RelativeDocumentMoniker": "ScreenshotFlash.csproj",
+              "ToolTip": "C:\\Users\\paolo\\Documents\\ScreenshotFlash_Advanced - Copia\\ScreenshotFlash.csproj",
+              "RelativeToolTip": "ScreenshotFlash.csproj",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001001|",
+              "WhenOpened": "2025-04-07T12:17:11.965Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "SelectionForm.cs",
+              "DocumentMoniker": "C:\\Users\\paolo\\Documents\\ScreenshotFlash_Advanced - Copia\\SelectionForm.cs",
+              "RelativeDocumentMoniker": "SelectionForm.cs",
+              "ToolTip": "C:\\Users\\paolo\\Documents\\ScreenshotFlash_Advanced - Copia\\SelectionForm.cs",
+              "RelativeToolTip": "SelectionForm.cs",
+              "ViewState": "AgIAADsAAAAAAAAAAAAIwAcAAAARAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-04-07T11:56:26.928Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 3,
+              "Title": "Program.cs",
+              "DocumentMoniker": "C:\\Users\\paolo\\Documents\\ScreenshotFlash_Advanced - Copia\\Program.cs",
+              "RelativeDocumentMoniker": "Program.cs",
+              "ToolTip": "C:\\Users\\paolo\\Documents\\ScreenshotFlash_Advanced - Copia\\Program.cs",
+              "RelativeToolTip": "Program.cs",
+              "ViewState": "AgIAAFoAAAAAAAAAAAAowGEAAAAjAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-04-07T11:56:06.556Z"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
