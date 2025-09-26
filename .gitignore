@@ -1,10 +1,26 @@
 ﻿# Build artifacts
 bin/
 obj/
-# VS
+
+# Visual Studio
 .vs/
 *.user
 *.suo
-# OS
+
+# NuGet
+packages/
+*.nupkg
+*.snupkg
+
+# Test/coverage
+TestResults/
+*.coverage
+*.coveragexml
+
+# Logs
+*.log
+
+# OS/editor
 Thumbs.db
 .DS_Store
+.vscode/
