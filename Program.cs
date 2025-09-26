@@ -2,58 +2,276 @@ using System;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.IO;
+using System.Runtime.InteropServices;
 using System.Threading;
 using System.Windows.Forms;
-using System.Runtime.InteropServices;
 
 namespace ScreenshotFlash
 {
     static class Program
     {
+        private enum PROCESS_DPI_AWARENESS
+        {
+            PROCESS_DPI_UNAWARE = 0,
+            PROCESS_SYSTEM_DPI_AWARE = 1,
+            PROCESS_PER_MONITOR_DPI_AWARE = 2
+        }
+
+        private static readonly IntPtr DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2 = new IntPtr(-4);
+        private static readonly IntPtr DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE = new IntPtr(-3);
+        private static readonly IntPtr DPI_AWARENESS_CONTEXT_SYSTEM_AWARE = new IntPtr(-2);
+
         [DllImport("user32.dll")]
         private static extern bool SetProcessDPIAware();
+
+        [DllImport("user32.dll", SetLastError = true)]
+        private static extern bool SetProcessDpiAwarenessContext(IntPtr dpiContext);
+
+        [DllImport("shcore.dll", SetLastError = true)]
+        private static extern int SetProcessDpiAwareness(PROCESS_DPI_AWARENESS awareness);
+
+        [DllImport("user32.dll")]
+        private static extern bool GetCursorPos(out POINT lpPoint);
+
+        [DllImport("user32.dll")]
+        private static extern IntPtr MonitorFromPoint(POINT pt, uint dwFlags);
+
+        [DllImport("user32.dll")]
+        private static extern bool GetMonitorInfo(IntPtr hMonitor, ref MONITORINFO lpmi);
+
+        [DllImport("user32.dll")]
+        private static extern uint GetDpiForSystem();
+
+        [DllImport("user32.dll")]
+        private static extern uint GetDpiForWindow(IntPtr hwnd);
+
+        [DllImport("shcore.dll")]
+        private static extern int GetDpiForMonitor(IntPtr hmonitor, int dpiType, out uint dpiX, out uint dpiY);
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct POINT
+        {
+            public int X;
+            public int Y;
+        }
+
+        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]
+        private struct MONITORINFO
+        {
+            public uint cbSize;
+            public RECT rcMonitor;
+            public RECT rcWork;
+            public uint dwFlags;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct RECT
+        {
+            public int Left;
+            public int Top;
+            public int Right;
+            public int Bottom;
+        }
+
+        private const uint MONITOR_DEFAULTTONEAREST = 2;
+        private const int MDT_EFFECTIVE_DPI = 0;
 
         [STAThread]
         static void Main()
         {
-            SetProcessDPIAware(); // disabilita scaling DPI, cattura precisa
+            InitializeDpiAwareness();
 
             bool isPartial = (Control.ModifierKeys & Keys.Shift) == Keys.Shift;
 
             Rectangle bounds;
+            Application.EnableVisualStyles();
+            Application.SetCompatibleTextRenderingDefault(false);
+
             if (isPartial)
             {
-                Application.EnableVisualStyles();
                 using (var selector = new SelectionForm())
                 {
                     if (selector.ShowDialog() != DialogResult.OK)
                         return;
                     bounds = selector.SelectedRegion;
                 }
+
+                if (bounds.Width > 0 && bounds.Height > 0)
+                {
+                    RunFlash(bounds);
+                    Thread.Sleep(200); // Aspetta che il flash finisca
+                }
             }
             else
             {
-                Screen activeScreen = Screen.FromPoint(Cursor.Position);
-                bounds = activeScreen.Bounds;
+                bounds = GetMonitorBoundsFromCursor();
+                RunFlash(bounds);
+                Thread.Sleep(200); // Aspetta che il flash finisca
+            }
 
-                Thread flashThread = new Thread(() =>
+            CaptureAndSaveScreenshot(bounds);
+        }
+
+        private static void CaptureAndSaveScreenshot(Rectangle bounds)
+        {
+            if (bounds.Width <= 0 || bounds.Height <= 0)
+                return;
+
+            try
+            {
+                using (Bitmap bmp = new Bitmap(bounds.Width, bounds.Height, PixelFormat.Format32bppArgb))
                 {
-                    Form flash = new Form
+                    using (Graphics g = Graphics.FromImage(bmp))
                     {
-                        StartPosition = FormStartPosition.Manual,
-                        Location = bounds.Location,
-                        Size = bounds.Size,
-                        BackColor = Color.Cyan,
-                        FormBorderStyle = FormBorderStyle.None,
-                        TopMost = true,
-                        ShowInTaskbar = false,
-                        Opacity = 0.0
-                    };
+                        g.CompositingMode = System.Drawing.Drawing2D.CompositingMode.SourceCopy;
+                        g.CompositingQuality = System.Drawing.Drawing2D.CompositingQuality.HighQuality;
+                        g.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.NearestNeighbor;
+                        g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.None;
+                        g.PixelOffsetMode = System.Drawing.Drawing2D.PixelOffsetMode.None;
 
+                        g.CopyFromScreen(
+                            bounds.Left,
+                            bounds.Top,
+                            0,
+                            0,
+                            bounds.Size,
+                            CopyPixelOperation.SourceCopy);
+                    }
+
+                    Clipboard.SetImage(bmp);
+
+                    string folder = Path.Combine(
+                        Environment.GetFolderPath(Environment.SpecialFolder.MyPictures),
+                        "Screenshots");
+
+                    if (!Directory.Exists(folder))
+                        Directory.CreateDirectory(folder);
+
+                    int counter = 1;
+                    foreach (string file in Directory.GetFiles(folder, "screen_*.png"))
+                    {
+                        string name = Path.GetFileNameWithoutExtension(file);
+                        if (!name.StartsWith("screen_", StringComparison.OrdinalIgnoreCase))
+                            continue;
+
+                        string remainder = name.Substring("screen_".Length);
+                        int separatorIndex = remainder.IndexOf('_');
+                        string numericPart = separatorIndex >= 0 ? remainder.Substring(0, separatorIndex) : remainder;
+
+                        if (int.TryParse(numericPart, out int existing) && existing >= counter)
+                        {
+                            counter = existing + 1;
+                        }
+                    }
+
+                    string timestamp = DateTime.Now.ToString("yyyy-MM-dd_HH-mm-ss");
+                    string filename = $"screen_{counter}_{timestamp}.png";
+                    string filePath = Path.Combine(folder, filename);
+
+                    while (File.Exists(filePath))
+                    {
+                        counter++;
+                        filename = $"screen_{counter}_{timestamp}.png";
+                        filePath = Path.Combine(folder, filename);
+                    }
+
+                    bmp.Save(filePath, ImageFormat.Png);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Errore durante la cattura dello schermo: {ex.Message}", "Errore", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private static void InitializeDpiAwareness()
+        {
+            if (Environment.OSVersion.Platform != PlatformID.Win32NT)
+                return;
+
+            try
+            {
+                if (SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2))
+                    return;
+            }
+            catch (DllNotFoundException) { }
+            catch (EntryPointNotFoundException) { }
+
+            try
+            {
+                if (SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE))
+                    return;
+            }
+            catch (DllNotFoundException) { }
+            catch (EntryPointNotFoundException) { }
+
+            try
+            {
+                const int S_OK = 0;
+                if (SetProcessDpiAwareness(PROCESS_DPI_AWARENESS.PROCESS_PER_MONITOR_DPI_AWARE) == S_OK)
+                    return;
+            }
+            catch (DllNotFoundException) { }
+            catch (EntryPointNotFoundException) { }
+
+            try
+            {
+                SetProcessDPIAware();
+            }
+            catch (DllNotFoundException) { }
+            catch (EntryPointNotFoundException) { }
+        }
+
+        private static Rectangle GetMonitorBoundsFromCursor()
+        {
+            if (!GetCursorPos(out POINT pt))
+                return GetScaledScreenBounds(Screen.PrimaryScreen);
+
+            IntPtr hMonitor = MonitorFromPoint(pt, MONITOR_DEFAULTTONEAREST);
+
+            MONITORINFO monitorInfo = new MONITORINFO();
+            monitorInfo.cbSize = (uint)Marshal.SizeOf(monitorInfo);
+
+            if (GetMonitorInfo(hMonitor, ref monitorInfo))
+            {
+                Rectangle bounds = new Rectangle(
+                    monitorInfo.rcMonitor.Left,
+                    monitorInfo.rcMonitor.Top,
+                    monitorInfo.rcMonitor.Right - monitorInfo.rcMonitor.Left,
+                    monitorInfo.rcMonitor.Bottom - monitorInfo.rcMonitor.Top
+                );
+
+                return GetDpiScaledBounds(bounds, hMonitor);
+            }
+
+            Point cursorPoint = new Point(pt.X, pt.Y);
+            Screen activeScreen = Screen.FromPoint(cursorPoint);
+            return GetScaledScreenBounds(activeScreen);
+        }
+
+        private static void RunFlash(Rectangle bounds)
+        {
+            Thread flashThread = new Thread(() =>
+            {
+                using (Form flash = new Form
+                {
+                    StartPosition = FormStartPosition.Manual,
+                    Location = bounds.Location,
+                    Size = bounds.Size,
+                    BackColor = Color.Cyan,
+                    FormBorderStyle = FormBorderStyle.None,
+                    TopMost = true,
+                    ShowInTaskbar = false,
+                    Opacity = 0.0
+                })
+                {
                     Region borderRegion = new Region(new Rectangle(0, 0, bounds.Width, bounds.Height));
-                    borderRegion.Exclude(new Rectangle(30, 30, bounds.Width - 60, bounds.Height - 60));
-                    flash.Region = borderRegion;
+                    if (bounds.Width > 60 && bounds.Height > 60)
+                    {
+                        borderRegion.Exclude(new Rectangle(30, 30, bounds.Width - 60, bounds.Height - 60));
+                    }
 
+                    flash.Region = borderRegion;
                     flash.BackColor = Color.Cyan;
                     flash.TransparencyKey = Color.Black;
 
@@ -82,67 +300,65 @@ namespace ScreenshotFlash
                     };
 
                     Application.Run(flash);
-                });
-
-                flashThread.SetApartmentState(ApartmentState.STA);
-                flashThread.Start();
-                flashThread.Join();
-            }
-
-            using (Bitmap bmp = new Bitmap(bounds.Width, bounds.Height))
+                }
+            })
             {
-                using (Graphics g = Graphics.FromImage(bmp))
+                IsBackground = true
+            };
+
+            flashThread.SetApartmentState(ApartmentState.STA);
+            flashThread.Start();
+            flashThread.Join();
+        }
+
+        private static Rectangle GetDpiScaledBounds(Rectangle bounds, IntPtr hMonitor)
+        {
+            try
+            {
+                if (GetDpiForMonitor(hMonitor, MDT_EFFECTIVE_DPI, out uint dpiX, out uint dpiY) == 0)
                 {
-                    g.CopyFromScreen(
-                        bounds.Left,
-                        bounds.Top,
-                        0,
-                        0,
-                        new Size(bounds.Width, bounds.Height),
-                        CopyPixelOperation.SourceCopy);
+                    double scaleX = dpiX / 96.0;
+                    double scaleY = dpiY / 96.0;
+
+                    return new Rectangle(
+                        bounds.X,
+                        bounds.Y,
+                        (int)Math.Round(bounds.Width / scaleX * scaleX),
+                        (int)Math.Round(bounds.Height / scaleY * scaleY)
+                    );
                 }
-
-                Clipboard.SetImage(bmp); // Copia negli appunti
-
-                string folder = Path.Combine(
-                    Environment.GetFolderPath(Environment.SpecialFolder.MyPictures),
-                    "Screenshots"
-                );
-
-                if (!Directory.Exists(folder))
-                    Directory.CreateDirectory(folder);
-
-                // Cerca il numero piÃ¹ alto tra i file esistenti e genera un nome univoco
-                int counter = 1;
-                foreach (string file in Directory.GetFiles(folder, "screen_*.png"))
-                {
-                    string name = Path.GetFileNameWithoutExtension(file);
-                    if (!name.StartsWith("screen_", StringComparison.OrdinalIgnoreCase))
-                        continue;
-
-                    string remainder = name.Substring("screen_".Length);
-                    int separatorIndex = remainder.IndexOf('_');
-                    string numericPart = separatorIndex >= 0 ? remainder[..separatorIndex] : remainder;
-
-                    if (int.TryParse(numericPart, out int existing) && existing >= counter)
-                    {
-                        counter = existing + 1;
-                    }
-                }
-
-                string timestamp = DateTime.Now.ToString("yyyy-MM-dd_HH-mm-ss");
-                string filename = $"screen_{counter}_{timestamp}.png";
-                string filePath = Path.Combine(folder, filename);
-
-                while (File.Exists(filePath))
-                {
-                    counter++;
-                    filename = $"screen_{counter}_{timestamp}.png";
-                    filePath = Path.Combine(folder, filename);
-                }
-
-                bmp.Save(filePath, ImageFormat.Png);
             }
+            catch
+            {
+            }
+
+            return bounds;
+        }
+
+        private static Rectangle GetScaledScreenBounds(Screen screen)
+        {
+            Rectangle bounds = screen.Bounds;
+
+            using (Graphics g = Graphics.FromHwnd(IntPtr.Zero))
+            {
+                float dpiX = g.DpiX;
+                float dpiY = g.DpiY;
+
+                if (dpiX != 96.0f || dpiY != 96.0f)
+                {
+                    double scaleX = dpiX / 96.0;
+                    double scaleY = dpiY / 96.0;
+
+                    return new Rectangle(
+                        bounds.X,
+                        bounds.Y,
+                        (int)Math.Round(bounds.Width / scaleX * scaleX),
+                        (int)Math.Round(bounds.Height / scaleY * scaleY)
+                    );
+                }
+            }
+
+            return bounds;
         }
     }
 }
