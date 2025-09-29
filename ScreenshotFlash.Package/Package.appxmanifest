@@ -22,7 +22,7 @@
   </Resources>
   <Applications>
     <Application Id="App"
-                 Executable="ScreenshotFlash\ScreenshotFlash.exe"
+                 Executable="ScreenshotFlash\RScreenFlash.exe"
                  EntryPoint="Windows.FullTrustApplication">
       <uap:VisualElements DisplayName="Screenshot Flash"
                           Description="Cattura schermate con selezione personalizzata."
@@ -34,7 +34,7 @@
                           Square310x310Logo="Images\Square310x310Logo.png" />
         <uap:SplashScreen Image="Images\SplashScreen.png" />
       </uap:VisualElements>
-      <desktop:Extension Category="windows.fullTrustProcess" Executable="ScreenshotFlash\ScreenshotFlash.exe" />
+      <desktop:Extension Category="windows.fullTrustProcess" Executable="ScreenshotFlash\RScreenFlash.exe" />
     </Application>
   </Applications>
   <Capabilities>
