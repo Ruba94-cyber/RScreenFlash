@@ -1,0 +1,41 @@
+Guida rapida per pubblicare Screenshot Flash sul Microsoft Store a 0,99 €
+=====================================================================
+
+1. Preparazione del pacchetto
+   a. Apri la soluzione ScreenshotFlash.sln in Visual Studio 2022.
+   b. Associa il progetto ScreenshotFlash.Package allo Store: Store > Associa App con lo Store...
+   c. Aggiorna il numero di versione (es. 1.0.1.0) in Package.appxmanifest.
+   d. Genera il pacchetto MSIX: Build > Pubblica > Crea pacchetto app > MSIX Upload.
+
+2. Verifica tecnica
+   a. Esegui il pacchetto MSIX con Windows App Certification Kit (WACK) e salva il report.
+   b. Installa il pacchetto su un PC di prova per controllare avvio, cattura screenshot e disinstallazione.
+
+3. Creazione submission
+   a. Accedi a https://partner.microsoft.com/dashboard con l'account sviluppatore.
+   b. Seleziona l'app Screenshot Flash o creane una nuova submission.
+   c. Sezione Pacchetti: carica il file .msixupload generato in precedenza.
+
+4. Pricing & availability
+   a. Vai alla scheda "Pricing and availability".
+   b. Imposta il prezzo base su 0,99 € (seleziona "Custom price" e scegli 0.99 o equivalente per ciascun mercato).
+   c. Conferma la disponibilità globale oppure specifica i mercati desiderati.
+   d. Se desideri offrire una prova, abilita "Free trial" (opzionale) e definisci la durata.
+
+5. Metadati e contenuti
+   a. Descrizione: inserisci testo promozionale in italiano e inglese.
+   b. Screenshot: carica almeno 3 immagini 16:9 aggiornate.
+   c. Link alla privacy policy: https://www.screenshotflash.app/privacy (aggiorna con l'URL pubblico corrispondente al file store/PrivacyPolicy.md).
+   d. Contatto supporto: support@screenshotflash.app.
+
+6. Certificazione
+   a. Compila la sezione "Age rating" rispondendo al questionario IARC.
+   b. Accetta le Microsoft Store Policies e conferma che l'app non contiene contenuti vietati.
+   c. Invia la submission e monitora lo stato (In review > Certification > Release).
+
+7. Post-pubblicazione
+   a. Una volta pubblicata, verifica la pagina pubblica dello Store e scarica l'app come cliente per controllo qualità.
+   b. Pianifica aggiornamenti futuri mantenendo la stessa identità del pacchetto.
+   c. Archivia il report WACK e le note di rilascio per eventuali audit.
+
+Note: Mantieni aggiornati i file in /store (PrivacyPolicy.md, SupportPolicy.md, StoreComplianceChecklist.md) e assicurati che gli URL pubblici puntino alla versione più recente di queste policy.

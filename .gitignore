@@ -24,3 +24,7 @@ TestResults/
 Thumbs.db
 .DS_Store
 .vscode/
+
+# Generated at build time
+ScreenshotFlash.Package/Images/*.png
+Icon_screenshotflash.ico
