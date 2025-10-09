@@ -61,9 +61,6 @@ Example: `screen_001_20240929_143022.png`
 - **Students** – Save references and study materials quickly.
 - **Business teams** – Share information across the organization.
 
-## Support
-
-For support or to report an issue, email **paolo.ruba.1913@gmail.com**.
 
 ## System Requirements
 
