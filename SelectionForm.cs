@@ -4,7 +4,7 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using System.Windows.Forms;
 
-namespace ScreenshotFlash
+namespace RScreenFlash
 {
     public class SelectionForm : Form
     {
