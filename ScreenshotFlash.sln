@@ -5,8 +5,6 @@ VisualStudioVersion = 17.13.35919.96
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ScreenshotFlash", "ScreenshotFlash.csproj", "{AA56E68A-0248-B00F-0561-990CED36BC73}"
 EndProject
-Project("{C7167F0D-BC9F-4E6E-AFE1-012C56B48DB5}") = "ScreenshotFlash.Package", "ScreenshotFlash.Package\ScreenshotFlash.Package.wapproj", "{7C5D5F71-8F25-4D81-A297-3D2975C550C0}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -23,18 +21,6 @@ Global
 		{AA56E68A-0248-B00F-0561-990CED36BC73}.Release|x64.Build.0 = Release|x64
 		{AA56E68A-0248-B00F-0561-990CED36BC73}.Release|x86.ActiveCfg = Release|x86
 		{AA56E68A-0248-B00F-0561-990CED36BC73}.Release|x86.Build.0 = Release|x86
-		{7C5D5F71-8F25-4D81-A297-3D2975C550C0}.Debug|x64.ActiveCfg = Debug|x64
-		{7C5D5F71-8F25-4D81-A297-3D2975C550C0}.Debug|x64.Build.0 = Debug|x64
-		{7C5D5F71-8F25-4D81-A297-3D2975C550C0}.Debug|x64.Deploy.0 = Debug|x64
-		{7C5D5F71-8F25-4D81-A297-3D2975C550C0}.Debug|x86.ActiveCfg = Debug|x86
-		{7C5D5F71-8F25-4D81-A297-3D2975C550C0}.Debug|x86.Build.0 = Debug|x86
-		{7C5D5F71-8F25-4D81-A297-3D2975C550C0}.Debug|x86.Deploy.0 = Debug|x86
-		{7C5D5F71-8F25-4D81-A297-3D2975C550C0}.Release|x64.ActiveCfg = Release|x64
-		{7C5D5F71-8F25-4D81-A297-3D2975C550C0}.Release|x64.Build.0 = Release|x64
-		{7C5D5F71-8F25-4D81-A297-3D2975C550C0}.Release|x64.Deploy.0 = Release|x64
-		{7C5D5F71-8F25-4D81-A297-3D2975C550C0}.Release|x86.ActiveCfg = Release|x86
-		{7C5D5F71-8F25-4D81-A297-3D2975C550C0}.Release|x86.Build.0 = Release|x86
-		{7C5D5F71-8F25-4D81-A297-3D2975C550C0}.Release|x86.Deploy.0 = Release|x86
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

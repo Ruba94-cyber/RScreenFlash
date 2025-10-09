@@ -1,69 +1,75 @@
 # RScreenFlash
 
-RScreenFlash è una utility potente e veloce per Windows che ti permette di catturare screenshot in modo professionale e intuitivo.
+RScreenFlash is a fast, lightweight screenshot utility for Windows designed to deliver professional captures with zero fuss.
 
-## Caratteristiche principali
+## Key Features
 
-✅ **Cattura istantanea**: Cattura rapidamente l'intero schermo con un semplice click
-✅ **Selezione personalizzata**: Tieni premuto **Shift** per selezionare solo l'area che ti serve
-✅ **Feedback visivo**: Effetto "flash" bordato che conferma la cattura
-✅ **Salvataggio automatico**: Le immagini vengono salvate automaticamente e copiate negli Appunti
-✅ **Multi-monitor**: Supporto completo per configurazioni con più schermi
-✅ **Leggero e veloce**: Interfaccia minimale che non rallenta il sistema
+✅ **Instant capture** – Grab the entire screen with a single click.
 
-## Come utilizzare RScreenFlash
+✅ **Custom selection** – Hold **Shift** while launching to draw a capture region.
 
-### Cattura a schermo intero
-1. Avvia l'applicazione RScreenFlash
-2. L'app evidenzia temporaneamente il monitor attivo con un bordo ciano
-3. Lo screenshot viene automaticamente copiato negli Appunti e salvato
+✅ **Visual feedback** – A cyan flash outlines the active monitor so you know the shot succeeded.
 
-### Cattura area personalizzata
-1. Tieni premuto il tasto **Shift** mentre avvii l'applicazione
-2. Apparirà un overlay trasparente su tutti i monitor
-3. Trascina per selezionare l'area desiderata
-4. Lo screenshot dell'area selezionata viene copiato e salvato
+✅ **Automatic saving** – Screenshots are saved to disk and copied to the clipboard automatically.
 
-## Organizzazione file
+✅ **Multi-monitor aware** – Works seamlessly across multiple displays.
 
-Gli screenshot vengono salvati automaticamente nella cartella:
+✅ **Minimal footprint** – Small, responsive UI that stays out of your way.
+
+## How to Use RScreenFlash
+
+### Full-screen capture
+1. Launch RScreenFlash.
+2. The active monitor briefly highlights with a cyan border.
+3. The screenshot is saved and copied to the clipboard automatically.
+
+### Custom area capture
+1. Hold **Shift** while starting the application.
+2. A transparent overlay covers all connected monitors.
+3. Click and drag to select the area you want to capture.
+4. The selected region is saved and placed on the clipboard.
+
+## File Organization
+
+Screenshots are stored in the following directory:
+
 ```
 %USERPROFILE%\Pictures\Screenshots
 ```
 
-I file sono nominati automaticamente con il formato:
+Files use the naming pattern:
+
 ```
-screen_<numero>_<timestamp>.png
+screen_<number>_<timestamp>.png
 ```
 
-Esempio: `screen_001_20240929_143022.png`
+Example: `screen_001_20240929_143022.png`
 
-## Vantaggi di RScreenFlash
+## Why Choose RScreenFlash?
 
-- **Velocità**: Cattura istantanea senza menù complicati
-- **Praticità**: Già negli Appunti per l'uso immediato
-- **Precisione**: Selezione pixel-perfect delle aree
-- **Affidabilità**: Funziona su Windows 10 e 11
-- **Zero configurazione**: Pronto all'uso senza setup
+- **Speed** – Capture instantly without navigating menus.
+- **Convenience** – Every shot is immediately available in the clipboard.
+- **Precision** – Draw pixel-perfect selection rectangles.
+- **Reliability** – Compatible with Windows 10 and Windows 11.
+- **Zero setup** – Ready to use as soon as it is installed.
 
-## Casi d'uso ideali
+## Ideal Use Cases
 
-- **Professionisti**: Documentazione tecnica e presentazioni
-- **Content Creator**: Screenshot per tutorial e guide
-- **Sviluppatori**: Cattura di bug e interfacce
-- **Studenti**: Salvataggio rapido di materiale di studio
-- **Business**: Condivisione veloce di informazioni
+- **Professionals** – Technical documentation and presentations.
+- **Content creators** – Tutorials, walkthroughs, and guides.
+- **Developers** – Reproduce UI bugs and document features.
+- **Students** – Save references and study materials quickly.
+- **Business teams** – Share information across the organization.
 
-## Supporto
+## Support
 
-Per assistenza tecnica o segnalazione di problemi, contatta:
-**paolo.ruba.1913@gmail.com**
+For support or to report an issue, email **paolo.ruba.1913@gmail.com**.
 
-## Requisiti di sistema
+## System Requirements
 
-- Windows 10 o Windows 11
-- .NET Framework 4.8 (generalmente già presente)
+- Windows 10 or Windows 11
+- .NET Framework 4.8 (typically preinstalled)
 
 ---
 
-**RScreenFlash** - La soluzione più veloce per i tuoi screenshot professionali.
+**RScreenFlash** – The fastest way to capture polished screenshots.
