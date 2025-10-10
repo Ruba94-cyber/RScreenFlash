@@ -189,6 +189,9 @@ namespace RScreenFlash
                 selection.Width,
                 selection.Height);
 
+            if (Program.IsPerMonitorAware)
+                return realSelection;
+
             // Trova il monitor per questa selezione
             Point center = new Point(
                 realSelection.X + realSelection.Width / 2,

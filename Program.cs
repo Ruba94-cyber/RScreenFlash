@@ -21,6 +21,10 @@ namespace RScreenFlash
         private static readonly IntPtr DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE = new IntPtr(-3);
         private static readonly IntPtr DPI_AWARENESS_CONTEXT_SYSTEM_AWARE = new IntPtr(-2);
 
+        private static bool s_isPerMonitorAware;
+
+        internal static bool IsPerMonitorAware => s_isPerMonitorAware;
+
         [DllImport("user32.dll")]
         private static extern bool SetProcessDPIAware();
 
@@ -192,7 +196,10 @@ namespace RScreenFlash
             try
             {
                 if (SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2))
+                {
+                    s_isPerMonitorAware = true;
                     return;
+                }
             }
             catch (DllNotFoundException) { }
             catch (EntryPointNotFoundException) { }
@@ -200,7 +207,10 @@ namespace RScreenFlash
             try
             {
                 if (SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE))
+                {
+                    s_isPerMonitorAware = true;
                     return;
+                }
             }
             catch (DllNotFoundException) { }
             catch (EntryPointNotFoundException) { }
@@ -208,15 +218,25 @@ namespace RScreenFlash
             try
             {
                 const int S_OK = 0;
-                if (SetProcessDpiAwareness(PROCESS_DPI_AWARENESS.PROCESS_PER_MONITOR_DPI_AWARE) == S_OK)
+                const int E_ACCESSDENIED = unchecked((int)0x80070005);
+
+                int result = SetProcessDpiAwareness(PROCESS_DPI_AWARENESS.PROCESS_PER_MONITOR_DPI_AWARE);
+
+                if (result == S_OK || result == E_ACCESSDENIED)
+                {
+                    s_isPerMonitorAware = true;
                     return;
+                }
             }
             catch (DllNotFoundException) { }
             catch (EntryPointNotFoundException) { }
 
             try
             {
-                SetProcessDPIAware();
+                if (SetProcessDPIAware())
+                {
+                    s_isPerMonitorAware = false;
+                }
             }
             catch (DllNotFoundException) { }
             catch (EntryPointNotFoundException) { }
@@ -265,41 +285,43 @@ namespace RScreenFlash
                     Opacity = 0.0
                 })
                 {
-                    Region borderRegion = new Region(new Rectangle(0, 0, bounds.Width, bounds.Height));
-                    if (bounds.Width > 60 && bounds.Height > 60)
+                    using (Region borderRegion = new Region(new Rectangle(0, 0, bounds.Width, bounds.Height)))
                     {
-                        borderRegion.Exclude(new Rectangle(30, 30, bounds.Width - 60, bounds.Height - 60));
+                        if (bounds.Width > 60 && bounds.Height > 60)
+                        {
+                            borderRegion.Exclude(new Rectangle(30, 30, bounds.Width - 60, bounds.Height - 60));
+                        }
+
+                        flash.Region = borderRegion;
+                        flash.BackColor = Color.Cyan;
+                        flash.TransparencyKey = Color.Black;
+
+                        flash.Shown += (s, e) =>
+                        {
+                            for (double op = 0.0; op <= 0.8; op += 0.1)
+                            {
+                                flash.Opacity = op;
+                                flash.Refresh();
+                                Application.DoEvents();
+                                Thread.Sleep(20);
+                            }
+
+                            Application.DoEvents();
+                            Thread.Sleep(150);
+
+                            for (double op = 0.8; op >= 0.0; op -= 0.1)
+                            {
+                                flash.Opacity = op;
+                                flash.Refresh();
+                                Application.DoEvents();
+                                Thread.Sleep(20);
+                            }
+
+                            flash.Close();
+                        };
+
+                        Application.Run(flash);
                     }
-
-                    flash.Region = borderRegion;
-                    flash.BackColor = Color.Cyan;
-                    flash.TransparencyKey = Color.Black;
-
-                    flash.Shown += (s, e) =>
-                    {
-                        for (double op = 0.0; op <= 0.8; op += 0.1)
-                        {
-                            flash.Opacity = op;
-                            flash.Refresh();
-                            Application.DoEvents();
-                            Thread.Sleep(20);
-                        }
-
-                        Application.DoEvents();
-                        Thread.Sleep(150);
-
-                        for (double op = 0.8; op >= 0.0; op -= 0.1)
-                        {
-                            flash.Opacity = op;
-                            flash.Refresh();
-                            Application.DoEvents();
-                            Thread.Sleep(20);
-                        }
-
-                        flash.Close();
-                    };
-
-                    Application.Run(flash);
                 }
             })
             {
@@ -313,6 +335,9 @@ namespace RScreenFlash
 
         private static Rectangle GetDpiScaledBounds(Rectangle bounds, IntPtr hMonitor)
         {
+            if (IsPerMonitorAware)
+                return bounds;
+
             try
             {
                 if (GetDpiForMonitor(hMonitor, MDT_EFFECTIVE_DPI, out uint dpiX, out uint dpiY) == 0)
@@ -323,8 +348,8 @@ namespace RScreenFlash
                     return new Rectangle(
                         bounds.X,
                         bounds.Y,
-                        (int)Math.Round(bounds.Width / scaleX * scaleX),
-                        (int)Math.Round(bounds.Height / scaleY * scaleY)
+                        (int)Math.Round(bounds.Width * scaleX),
+                        (int)Math.Round(bounds.Height * scaleY)
                     );
                 }
             }
@@ -339,6 +364,9 @@ namespace RScreenFlash
         {
             Rectangle bounds = screen.Bounds;
 
+            if (IsPerMonitorAware)
+                return bounds;
+
             using (Graphics g = Graphics.FromHwnd(IntPtr.Zero))
             {
                 float dpiX = g.DpiX;
@@ -352,8 +380,8 @@ namespace RScreenFlash
                     return new Rectangle(
                         bounds.X,
                         bounds.Y,
-                        (int)Math.Round(bounds.Width / scaleX * scaleX),
-                        (int)Math.Round(bounds.Height / scaleY * scaleY)
+                        (int)Math.Round(bounds.Width * scaleX),
+                        (int)Math.Round(bounds.Height * scaleY)
                     );
                 }
             }
