@@ -89,7 +89,7 @@ namespace RScreenFlash
             e.Graphics.CompositingMode = System.Drawing.Drawing2D.CompositingMode.SourceOver;
             e.Graphics.CompositingQuality = System.Drawing.Drawing2D.CompositingQuality.HighQuality;
 
-            // Sfondo scuro semitrasparente
+            // Semi-transparent dark background overlay
             using (Brush dark = new SolidBrush(Color.FromArgb(120, 0, 0, 0)))
             {
                 e.Graphics.FillRectangle(dark, this.ClientRectangle);
@@ -97,20 +97,20 @@ namespace RScreenFlash
 
             if (selection.Width > 0 && selection.Height > 0)
             {
-                // Area selezionata trasparente (rimuove l'overlay scuro)
+                // Transparent selected area (removes the dark overlay)
                 using (Brush clear = new SolidBrush(Color.FromArgb(50, 255, 255, 255)))
                 {
                     e.Graphics.FillRectangle(clear, selection);
                 }
 
-                // Bordo cyan più visibile
+                // Cyan border for better visibility
                 using (Pen pen = new Pen(Color.Cyan, 3))
                 {
                     pen.DashStyle = System.Drawing.Drawing2D.DashStyle.Solid;
                     e.Graphics.DrawRectangle(pen, selection);
                 }
 
-                // Mostra dimensioni
+                // Display the selection dimensions
                 string dimensions = $"{selection.Width} × {selection.Height}";
                 using (Font font = new Font("Segoe UI", 12, FontStyle.Bold))
                 using (Brush textBrush = new SolidBrush(Color.White))
@@ -141,14 +141,14 @@ namespace RScreenFlash
                 this.Capture = false;
                 isSelecting = false;
 
-                if (selection.Width > 5 && selection.Height > 5) // Minimo 5x5 pixel
+                if (selection.Width > 5 && selection.Height > 5) // Minimum size of 5x5 pixels
                 {
                     this.DialogResult = DialogResult.OK;
                     this.Close();
                 }
                 else
                 {
-                    // Selezione troppo piccola, resetta
+                    // Selection too small, reset
                     selection = Rectangle.Empty;
                     Invalidate();
                 }
@@ -182,7 +182,7 @@ namespace RScreenFlash
             if (selection.IsEmpty)
                 return Rectangle.Empty;
 
-            // Coordinate reali nel virtual screen
+            // Actual coordinates within the virtual screen
             Rectangle realSelection = new Rectangle(
                 selection.X + virtualScreen.X,
                 selection.Y + virtualScreen.Y,
@@ -192,7 +192,7 @@ namespace RScreenFlash
             if (Program.IsPerMonitorAware)
                 return realSelection;
 
-            // Trova il monitor per questa selezione
+            // Find the monitor for this selection
             Point center = new Point(
                 realSelection.X + realSelection.Width / 2,
                 realSelection.Y + realSelection.Height / 2);
@@ -206,7 +206,7 @@ namespace RScreenFlash
                     double scaleX = dpiX / 96.0;
                     double scaleY = dpiY / 96.0;
 
-                    // Applica scaling DPI
+                    // Apply DPI scaling
                     return new Rectangle(
                         (int)Math.Round(realSelection.X * scaleX),
                         (int)Math.Round(realSelection.Y * scaleY),
@@ -217,7 +217,7 @@ namespace RScreenFlash
             }
             catch
             {
-                // Fallback senza scaling
+                // Fallback without DPI scaling
             }
 
             return realSelection;

@@ -67,6 +67,10 @@ Example: `screen_001_20240929_143022.png`
 - Windows 10 or Windows 11
 - .NET Framework 4.8 (typically preinstalled)
 
+## Support the Project
+
+If RScreenFlash helps you work faster, you can buy me a coffee by sending a PayPal donation through the [direct contribution page](https://www.paypal.com/donate?business=paolo.ruba.1913%40gmail.com&no_recurring=0&item_name=Support+RScreenFlash&currency_code=EUR).
+
 ---
 
 **RScreenFlash** – The fastest way to capture polished screenshots.

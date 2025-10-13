@@ -103,14 +103,14 @@ namespace RScreenFlash
                 if (bounds.Width > 0 && bounds.Height > 0)
                 {
                     RunFlash(bounds);
-                    Thread.Sleep(200); // Aspetta che il flash finisca
+                    Thread.Sleep(200); // Wait for the flash animation to finish
                 }
             }
             else
             {
                 bounds = GetMonitorBoundsFromCursor();
                 RunFlash(bounds);
-                Thread.Sleep(200); // Aspetta che il flash finisca
+                Thread.Sleep(200); // Wait for the flash animation to finish
             }
 
             CaptureAndSaveScreenshot(bounds);
@@ -184,7 +184,7 @@ namespace RScreenFlash
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Errore durante la cattura dello schermo: {ex.Message}", "Errore", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show($"An error occurred while capturing the screen: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
