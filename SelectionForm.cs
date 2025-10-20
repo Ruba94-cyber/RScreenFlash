@@ -1,7 +1,5 @@
 using System;
 using System.Drawing;
-using System.Linq;
-using System.Runtime.InteropServices;
 using System.Windows.Forms;
 
 namespace RScreenFlash
@@ -10,19 +8,12 @@ namespace RScreenFlash
     {
         private Point start;
         private Rectangle selection;
+        private Rectangle selectionScreen;
+        private Point startScreen;
         private Rectangle virtualScreen;
         private bool isSelecting = false;
 
-        [DllImport("user32.dll")]
-        private static extern IntPtr MonitorFromPoint(Point pt, uint dwFlags);
-
-        [DllImport("shcore.dll")]
-        private static extern int GetDpiForMonitor(IntPtr hmonitor, int dpiType, out uint dpiX, out uint dpiY);
-
-        private const uint MONITOR_DEFAULTTONEAREST = 2;
-        private const int MDT_EFFECTIVE_DPI = 0;
-
-        public Rectangle SelectedRegion => GetDpiAdjustedSelection();
+        public Rectangle SelectedRegion => GetScreenSelection();
 
         public SelectionForm()
         {
@@ -51,12 +42,7 @@ namespace RScreenFlash
 
         private Rectangle GetTrueVirtualScreen()
         {
-            int left = Screen.AllScreens.Min(s => s.Bounds.Left);
-            int top = Screen.AllScreens.Min(s => s.Bounds.Top);
-            int right = Screen.AllScreens.Max(s => s.Bounds.Right);
-            int bottom = Screen.AllScreens.Max(s => s.Bounds.Bottom);
-
-            return new Rectangle(left, top, right - left, bottom - top);
+            return SystemInformation.VirtualScreen;
         }
 
         protected override void OnMouseDown(MouseEventArgs e)
@@ -64,7 +50,9 @@ namespace RScreenFlash
             if (e.Button == MouseButtons.Left)
             {
                 start = e.Location;
+                startScreen = Cursor.Position;
                 selection = new Rectangle(e.Location, Size.Empty);
+                selectionScreen = Rectangle.Empty;
                 isSelecting = true;
                 this.Capture = true;
                 Invalidate();
@@ -73,13 +61,11 @@ namespace RScreenFlash
 
         protected override void OnMouseMove(MouseEventArgs e)
         {
-            if (isSelecting && e.Button == MouseButtons.Left)
+            if (isSelecting && (Control.MouseButtons & MouseButtons.Left) == MouseButtons.Left)
             {
-                selection = new Rectangle(
-                    Math.Min(start.X, e.X),
-                    Math.Min(start.Y, e.Y),
-                    Math.Abs(start.X - e.X),
-                    Math.Abs(start.Y - e.Y));
+                Point currentScreen = Cursor.Position;
+                Point currentClient = PointToClient(currentScreen);
+                UpdateSelectionRects(currentClient, currentScreen);
                 Invalidate();
             }
         }
@@ -141,8 +127,13 @@ namespace RScreenFlash
                 this.Capture = false;
                 isSelecting = false;
 
+                Point releaseScreen = Cursor.Position;
+                Point releaseClient = PointToClient(releaseScreen);
+                UpdateSelectionRects(releaseClient, releaseScreen);
+
                 if (selection.Width > 5 && selection.Height > 5) // Minimum size of 5x5 pixels
                 {
+                    EnsureSelectionScreen();
                     this.DialogResult = DialogResult.OK;
                     this.Close();
                 }
@@ -150,6 +141,7 @@ namespace RScreenFlash
                 {
                     // Selection too small, reset
                     selection = Rectangle.Empty;
+                    selectionScreen = Rectangle.Empty;
                     Invalidate();
                 }
             }
@@ -170,6 +162,7 @@ namespace RScreenFlash
             }
             else if (keyData == Keys.Enter && selection.Width > 5 && selection.Height > 5)
             {
+                EnsureSelectionScreen();
                 this.DialogResult = DialogResult.OK;
                 this.Close();
                 return true;
@@ -177,50 +170,15 @@ namespace RScreenFlash
             return base.ProcessCmdKey(ref msg, keyData);
         }
 
-        private Rectangle GetDpiAdjustedSelection()
+        private Rectangle GetScreenSelection()
         {
-            if (selection.IsEmpty)
+            if (selection.Width <= 0 || selection.Height <= 0)
                 return Rectangle.Empty;
 
-            // Actual coordinates within the virtual screen
-            Rectangle realSelection = new Rectangle(
-                selection.X + virtualScreen.X,
-                selection.Y + virtualScreen.Y,
-                selection.Width,
-                selection.Height);
+            if (selectionScreen.IsEmpty)
+                EnsureSelectionScreen();
 
-            if (Program.IsPerMonitorAware)
-                return realSelection;
-
-            // Find the monitor for this selection
-            Point center = new Point(
-                realSelection.X + realSelection.Width / 2,
-                realSelection.Y + realSelection.Height / 2);
-
-            IntPtr hMonitor = MonitorFromPoint(center, MONITOR_DEFAULTTONEAREST);
-
-            try
-            {
-                if (GetDpiForMonitor(hMonitor, MDT_EFFECTIVE_DPI, out uint dpiX, out uint dpiY) == 0)
-                {
-                    double scaleX = dpiX / 96.0;
-                    double scaleY = dpiY / 96.0;
-
-                    // Apply DPI scaling
-                    return new Rectangle(
-                        (int)Math.Round(realSelection.X * scaleX),
-                        (int)Math.Round(realSelection.Y * scaleY),
-                        (int)Math.Round(realSelection.Width * scaleX),
-                        (int)Math.Round(realSelection.Height * scaleY)
-                    );
-                }
-            }
-            catch
-            {
-                // Fallback without DPI scaling
-            }
-
-            return realSelection;
+            return selectionScreen;
         }
 
         protected override void SetVisibleCore(bool value)
@@ -230,6 +188,48 @@ namespace RScreenFlash
             {
                 this.WindowState = FormWindowState.Maximized;
             }
+        }
+
+        private void UpdateSelectionRects(Point currentClient, Point currentScreen)
+        {
+            selection = Rectangle.FromLTRB(
+                Math.Min(start.X, currentClient.X),
+                Math.Min(start.Y, currentClient.Y),
+                Math.Max(start.X, currentClient.X),
+                Math.Max(start.Y, currentClient.Y));
+
+            Rectangle screenRect = Rectangle.FromLTRB(
+                Math.Min(startScreen.X, currentScreen.X),
+                Math.Min(startScreen.Y, currentScreen.Y),
+                Math.Max(startScreen.X, currentScreen.X),
+                Math.Max(startScreen.Y, currentScreen.Y));
+
+            screenRect.Intersect(virtualScreen);
+
+            if (screenRect.Width <= 0 || screenRect.Height <= 0)
+            {
+                selectionScreen = Rectangle.Empty;
+                return;
+            }
+
+            selectionScreen = screenRect;
+        }
+
+        private void EnsureSelectionScreen()
+        {
+            if (!selectionScreen.IsEmpty)
+                return;
+
+            Rectangle screenRect = RectangleToScreen(selection);
+            screenRect.Intersect(virtualScreen);
+
+            if (screenRect.Width <= 0 || screenRect.Height <= 0)
+            {
+                selectionScreen = Rectangle.Empty;
+                return;
+            }
+
+            selectionScreen = screenRect;
         }
     }
 }
