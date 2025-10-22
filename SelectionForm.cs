@@ -9,7 +9,6 @@ namespace RScreenFlash
         private Point start;
         private Rectangle selection;
         private Rectangle selectionScreen;
-        private Point startScreen;
         private Rectangle virtualScreen;
         private bool isSelecting = false;
 
@@ -50,7 +49,6 @@ namespace RScreenFlash
             if (e.Button == MouseButtons.Left)
             {
                 start = e.Location;
-                startScreen = Cursor.Position;
                 selection = new Rectangle(e.Location, Size.Empty);
                 selectionScreen = Rectangle.Empty;
                 isSelecting = true;
@@ -63,9 +61,8 @@ namespace RScreenFlash
         {
             if (isSelecting && (Control.MouseButtons & MouseButtons.Left) == MouseButtons.Left)
             {
-                Point currentScreen = Cursor.Position;
-                Point currentClient = PointToClient(currentScreen);
-                UpdateSelectionRects(currentClient, currentScreen);
+                Point currentClient = PointToClient(Cursor.Position);
+                UpdateSelectionRects(currentClient);
                 Invalidate();
             }
         }
@@ -127,9 +124,8 @@ namespace RScreenFlash
                 this.Capture = false;
                 isSelecting = false;
 
-                Point releaseScreen = Cursor.Position;
-                Point releaseClient = PointToClient(releaseScreen);
-                UpdateSelectionRects(releaseClient, releaseScreen);
+                Point releaseClient = PointToClient(Cursor.Position);
+                UpdateSelectionRects(releaseClient);
 
                 if (selection.Width > 5 && selection.Height > 5) // Minimum size of 5x5 pixels
                 {
@@ -190,7 +186,7 @@ namespace RScreenFlash
             }
         }
 
-        private void UpdateSelectionRects(Point currentClient, Point currentScreen)
+        private void UpdateSelectionRects(Point currentClient)
         {
             selection = Rectangle.FromLTRB(
                 Math.Min(start.X, currentClient.X),
@@ -198,12 +194,13 @@ namespace RScreenFlash
                 Math.Max(start.X, currentClient.X),
                 Math.Max(start.Y, currentClient.Y));
 
-            Rectangle screenRect = Rectangle.FromLTRB(
-                Math.Min(startScreen.X, currentScreen.X),
-                Math.Min(startScreen.Y, currentScreen.Y),
-                Math.Max(startScreen.X, currentScreen.X),
-                Math.Max(startScreen.Y, currentScreen.Y));
+            if (selection.Width <= 0 || selection.Height <= 0)
+            {
+                selectionScreen = Rectangle.Empty;
+                return;
+            }
 
+            Rectangle screenRect = RectangleToScreen(selection);
             screenRect.Intersect(virtualScreen);
 
             if (screenRect.Width <= 0 || screenRect.Height <= 0)
