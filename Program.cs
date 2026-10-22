@@ -159,22 +159,38 @@ namespace RScreenFlash
 
                         string suffix = Guid.NewGuid().ToString("N").Substring(0, 8);
                         string filePath = Path.Combine(folder, $"screen_{timestamp}_{suffix}.png");
+                        FileStream stream;
                         try
                         {
-                            using (FileStream stream = new FileStream(
-                                filePath, FileMode.CreateNew, FileAccess.Write, FileShare.None))
-                            {
-                                bmp.Save(stream, ImageFormat.Png);
-                            }
-                            break;
+                            stream = new FileStream(
+                                filePath, FileMode.CreateNew, FileAccess.Write, FileShare.None);
                         }
                         catch (IOException)
                         {
-                            // Retry only when another capture already created
-                            // this exact filename; propagate all other I/O errors.
+                            // Only a filename collision should be retried.
+                            // Do not hide permission, disk, or filesystem errors.
                             if (!File.Exists(filePath))
                                 throw;
+                            continue;
                         }
+
+                        try
+                        {
+                            using (stream)
+                            {
+                                bmp.Save(stream, ImageFormat.Png);
+                            }
+                        }
+                        catch
+                        {
+                            stream.Dispose();
+                            // Remove an incomplete file created by this process.
+                            try { File.Delete(filePath); }
+                            catch (IOException) { }
+                            catch (UnauthorizedAccessException) { }
+                            throw;
+                        }
+                        break;
                     }
 
                     // Saving is independent of clipboard availability.
