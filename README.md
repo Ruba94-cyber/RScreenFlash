@@ -70,16 +70,22 @@ Build the application in Release mode on Windows, then open PowerShell
 from the repository root and run:
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\\tools\\Measure-CaptureStartup.ps1 -Executable .\\bin\\x64\\Release\\RScreenFlash.exe -Runs 5
+powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\Measure-CaptureStartup.ps1 -Executable .\bin\x64\Release\RScreenFlash.exe -Runs 5 -ShiftRuns 5 -CancelRuns 1 -CsvPath .\capture-times.csv
 ```
 
-Use a neutral desktop before running: each invocation takes a real screenshot.
-To save timing metadata locally for a baseline comparison, append `-CsvPath .\\baseline.csv` (choose a different filename for the optimized build). The script requires exactly one new PNG and a successful exit per run.\n\nAdd `-CsvPath .\\capture-times.csv` to export timing metadata locally.\nThe script reports process elapsed time and the count of new PNG filenames;
-it does not inspect screenshot pixels or upload any data. This is an end-to-end
-startup measurement, not a breakdown of individual capture phases. The first
-run may include operating-system and .NET cold-start effects. Compare results
-with a baseline build under the same conditions before concluding that the
-initial-launch issue is resolved.
+The harness displays a synthetic test backdrop, measures standard and Shift
+selection captures, and verifies the PNG dimensions, successful exit, and
+clipboard image. Shift runs use varied selection sizes, including portrait,
+panoramic, 4:3, and odd dimensions. Cancel runs send Escape and verify that no
+PNG or clipboard update is produced and that the process exits.
+
+The optional CSV contains timing metadata only; screenshots are stored in a
+temporary test folder and removed when the run finishes. If a fast baseline
+process exits between polling intervals, its measured capture/save/clipboard
+times use process exit as an upper bound, with the output file and clipboard
+checked after exit. The first run may include operating-system and .NET
+cold-start effects. Compare baseline and optimized builds under the same
+conditions before drawing conclusions.
 
 ## Why Choose RScreenFlash?
 

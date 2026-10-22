@@ -1,8 +1,11 @@
 using System;
 using System.Drawing;
 using System.Drawing.Imaging;
+using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Runtime.InteropServices;
+using System.Text;
 using System.Threading;
 using System.Windows.Forms;
 
@@ -10,6 +13,17 @@ namespace RScreenFlash
 {
     static class Program
     {
+        private static Stopwatch s_applicationStopwatch;
+        private static string s_benchmarkTimingsPath;
+        private static bool s_shiftMode;
+        private static double s_captureDurationMilliseconds;
+        private static double s_timeToCaptureMilliseconds;
+        private static double s_pngWriteDurationMilliseconds;
+        private static double s_timeToSaveMilliseconds;
+        private static double s_clipboardDurationMilliseconds;
+        private static double s_timeToClipboardMilliseconds;
+        private static bool s_clipboardAvailable;
+
         private enum PROCESS_DPI_AWARENESS
         {
             PROCESS_DPI_UNAWARE = 0,
@@ -83,42 +97,54 @@ namespace RScreenFlash
         [STAThread]
         static void Main()
         {
-            InitializeDpiAwareness();
+            s_applicationStopwatch = Stopwatch.StartNew();
+            s_benchmarkTimingsPath = Environment.GetEnvironmentVariable("RSCREENFLASH_BENCHMARK_TIMINGS");
+            s_shiftMode = (Control.ModifierKeys & Keys.Shift) == Keys.Shift;
 
-            bool isPartial = (Control.ModifierKeys & Keys.Shift) == Keys.Shift;
-
-            Rectangle bounds;
-            Application.EnableVisualStyles();
-            Application.SetCompatibleTextRenderingDefault(false);
-
-            if (isPartial)
+            try
             {
-                using (var selector = new SelectionForm())
+                InitializeDpiAwareness();
+                Application.EnableVisualStyles();
+                Application.SetCompatibleTextRenderingDefault(false);
+
+                Rectangle bounds;
+                if (s_shiftMode)
                 {
-                    if (selector.ShowDialog() != DialogResult.OK)
-                        return;
-                    bounds = selector.SelectedRegion;
+                    using (var selector = new SelectionForm())
+                    {
+                        if (selector.ShowDialog() != DialogResult.OK)
+                            return;
+                        bounds = selector.SelectedRegion;
+                    }
+                }
+                else
+                {
+                    bounds = GetMonitorBoundsFromCursor();
                 }
 
-                if (bounds.Width > 0 && bounds.Height > 0)
+                if (CaptureAndSaveScreenshot(bounds))
                 {
+                    // Save the image before showing feedback. The overlay can
+                    // never delay capture or PNG creation or appear in the image.
                     RunFlash(bounds);
                 }
             }
-            else
+            finally
             {
-                bounds = GetMonitorBoundsFromCursor();
-                RunFlash(bounds);
+                s_applicationStopwatch.Stop();
+                WriteBenchmarkTimings();
             }
-
-            CaptureAndSaveScreenshot(bounds);
         }
 
-        private static void CaptureAndSaveScreenshot(Rectangle bounds)
+        private static bool CaptureAndSaveScreenshot(Rectangle bounds)
         {
             if (bounds.Width <= 0 || bounds.Height <= 0)
-                return;
+            {
+                Environment.ExitCode = 1;
+                return false;
+            }
 
+            Stopwatch captureStopwatch = Stopwatch.StartNew();
             try
             {
                 using (Bitmap bmp = new Bitmap(bounds.Width, bounds.Height, PixelFormat.Format32bppArgb))
@@ -140,10 +166,18 @@ namespace RScreenFlash
                             CopyPixelOperation.SourceCopy);
                     }
 
-                    string folder = Path.Combine(
-                        Environment.GetFolderPath(Environment.SpecialFolder.MyPictures),
-                        "Screenshots");
+                    captureStopwatch.Stop();
+                    s_captureDurationMilliseconds = captureStopwatch.Elapsed.TotalMilliseconds;
+                    s_timeToCaptureMilliseconds = s_applicationStopwatch.Elapsed.TotalMilliseconds;
 
+                    string benchmarkFolder = Environment.GetEnvironmentVariable("RSCREENFLASH_BENCHMARK_OUTPUT_DIRECTORY");
+                    string folder = string.IsNullOrWhiteSpace(benchmarkFolder)
+                        ? Path.Combine(
+                            Environment.GetFolderPath(Environment.SpecialFolder.MyPictures),
+                            "Screenshots")
+                        : Path.GetFullPath(benchmarkFolder);
+
+                    Stopwatch saveStopwatch = Stopwatch.StartNew();
                     if (!Directory.Exists(folder))
                         Directory.CreateDirectory(folder);
 
@@ -178,7 +212,10 @@ namespace RScreenFlash
                         {
                             using (stream)
                             {
+                                Stopwatch pngWriteStopwatch = Stopwatch.StartNew();
                                 bmp.Save(stream, ImageFormat.Png);
+                                pngWriteStopwatch.Stop();
+                                s_pngWriteDurationMilliseconds = pngWriteStopwatch.Elapsed.TotalMilliseconds;
                             }
                         }
                         catch
@@ -193,22 +230,41 @@ namespace RScreenFlash
                         break;
                     }
 
+                    saveStopwatch.Stop();
+                    s_timeToSaveMilliseconds = s_applicationStopwatch.Elapsed.TotalMilliseconds;
+
                     // Saving is independent of clipboard availability.
                     // Copy only after the PNG has been safely written.
-                    TryCopyToClipboard(bmp);
+                    Stopwatch clipboardStopwatch = Stopwatch.StartNew();
+                    s_clipboardAvailable = TryCopyToClipboard(bmp);
+                    clipboardStopwatch.Stop();
+                    s_clipboardDurationMilliseconds = clipboardStopwatch.Elapsed.TotalMilliseconds;
+                    s_timeToClipboardMilliseconds = s_applicationStopwatch.Elapsed.TotalMilliseconds;
                 }
+
+                return true;
             }
             catch (Exception ex)
             {
+                Environment.ExitCode = 1;
                 MessageBox.Show(
                     $"An error occurred while capturing the screen: {ex.Message}",
                     "Error",
                     MessageBoxButtons.OK,
                     MessageBoxIcon.Error);
+                return false;
+            }
+            finally
+            {
+                if (captureStopwatch.IsRunning)
+                {
+                    captureStopwatch.Stop();
+                    s_captureDurationMilliseconds = captureStopwatch.Elapsed.TotalMilliseconds;
+                }
             }
         }
 
-        private static void TryCopyToClipboard(Bitmap bitmap)
+        private static bool TryCopyToClipboard(Bitmap bitmap)
         {
             // Clipboard contention is transient (e.g. another application owns it).
             // Retry briefly without persisting or transmitting image data.
@@ -217,15 +273,52 @@ namespace RScreenFlash
                 try
                 {
                     Clipboard.SetImage(bitmap);
-                    return;
+                    return true;
                 }
                 catch (ExternalException)
                 {
                     if (attempt == 2)
-                        return;
+                        return false;
 
                     Thread.Sleep(25);
                 }
+            }
+
+            return false;
+        }
+
+        private static void WriteBenchmarkTimings()
+        {
+            if (string.IsNullOrWhiteSpace(s_benchmarkTimingsPath))
+                return;
+
+            try
+            {
+                string path = Path.GetFullPath(s_benchmarkTimingsPath);
+                string line = string.Format(
+                    CultureInfo.InvariantCulture,
+                    "Mode,CaptureDurationMs,TimeToCaptureMs,PngWriteDurationMs,TimeToSaveMs,ClipboardDurationMs,TimeToClipboardMs,MainDurationMs,ClipboardAvailable,ExitCode{0}{1},{2:F3},{3:F3},{4:F3},{5:F3},{6:F3},{7:F3},{8:F3},{9},{10}{0}",
+                    Environment.NewLine,
+                    s_shiftMode ? "Shift" : "Standard",
+                    s_captureDurationMilliseconds,
+                    s_timeToCaptureMilliseconds,
+                    s_pngWriteDurationMilliseconds,
+                    s_timeToSaveMilliseconds,
+                    s_clipboardDurationMilliseconds,
+                    s_timeToClipboardMilliseconds,
+                    s_applicationStopwatch.Elapsed.TotalMilliseconds,
+                    s_clipboardAvailable,
+                    Environment.ExitCode);
+
+                byte[] data = Encoding.UTF8.GetBytes(line);
+                using (var stream = new FileStream(path, FileMode.CreateNew, FileAccess.Write, FileShare.None))
+                {
+                    stream.Write(data, 0, data.Length);
+                }
+            }
+            catch
+            {
+                // Benchmark diagnostics are opt-in and must never affect capture.
             }
         }
 
@@ -332,20 +425,19 @@ namespace RScreenFlash
 
                 flash.Region = borderRegion;
 
-                // A WinForms timer keeps the UI message loop responsive while
-                // animating; no nested DoEvents or blocking sleeps are needed.
+                // Keep feedback brief and use the existing UI message loop.
                 using (var timer = new System.Windows.Forms.Timer { Interval = 12 })
                 {
                     int frame = 0;
                     timer.Tick += (s, e) =>
                     {
                         frame++;
-                        if (frame <= 4)
-                            flash.Opacity = frame * 0.2;
-                        else if (frame <= 7)
+                        if (frame <= 2)
+                            flash.Opacity = frame * 0.4;
+                        else if (frame == 3)
                             flash.Opacity = 0.8;
-                        else if (frame <= 11)
-                            flash.Opacity = (11 - frame) * 0.2;
+                        else if (frame <= 5)
+                            flash.Opacity = (6 - frame) * 0.2;
                         else
                         {
                             timer.Stop();
@@ -354,10 +446,8 @@ namespace RScreenFlash
                     };
                     flash.Shown += (s, e) => timer.Start();
                     flash.FormClosed += (s, e) => timer.Stop();
-                    flash.FormClosed += (s, e) => timer.Stop();
 
-                    // Returns only after the overlay closes, so it cannot appear
-                    // in the screenshot captured immediately afterwards.
+                    // This runs only after capture, save, and clipboard retries.
                     flash.ShowDialog();
                 }
             }
