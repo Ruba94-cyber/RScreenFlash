@@ -278,66 +278,54 @@ namespace RScreenFlash
 
         private static void RunFlash(Rectangle bounds)
         {
-            Thread flashThread = new Thread(() =>
+            // Main is already STA. Reuse its UI thread rather than starting
+            // another STA thread and waiting for it to terminate.
+            using (Form flash = new Form
             {
-                using (Form flash = new Form
-                {
-                    StartPosition = FormStartPosition.Manual,
-                    Location = bounds.Location,
-                    Size = bounds.Size,
-                    BackColor = Color.Cyan,
-                    FormBorderStyle = FormBorderStyle.None,
-                    TopMost = true,
-                    ShowInTaskbar = false,
-                    Opacity = 0.0
-                })
-                {
-                    using (Region borderRegion = new Region(new Rectangle(0, 0, bounds.Width, bounds.Height)))
-                    {
-                        if (bounds.Width > 60 && bounds.Height > 60)
-                        {
-                            borderRegion.Exclude(new Rectangle(30, 30, bounds.Width - 60, bounds.Height - 60));
-                        }
-
-                        flash.Region = borderRegion;
-                        flash.BackColor = Color.Cyan;
-                        flash.TransparencyKey = Color.Black;
-
-                        flash.Shown += (s, e) =>
-                        {
-                            for (int step = 1; step <= 4; step++)
-                            {
-                                flash.Opacity = step * 0.2;
-                                flash.Refresh();
-                                Application.DoEvents();
-                                Thread.Sleep(12);
-                            }
-
-                            Application.DoEvents();
-                            Thread.Sleep(35);
-
-                            for (int step = 3; step >= 0; step--)
-                            {
-                                flash.Opacity = step * 0.2;
-                                flash.Refresh();
-                                Application.DoEvents();
-                                Thread.Sleep(12);
-                            }
-
-                            flash.Close();
-                        };
-
-                        Application.Run(flash);
-                    }
-                }
+                StartPosition = FormStartPosition.Manual,
+                Location = bounds.Location,
+                Size = bounds.Size,
+                BackColor = Color.Cyan,
+                FormBorderStyle = FormBorderStyle.None,
+                TopMost = true,
+                ShowInTaskbar = false,
+                Opacity = 0.0
             })
+            using (Region borderRegion = new Region(new Rectangle(0, 0, bounds.Width, bounds.Height)))
             {
-                IsBackground = true
-            };
+                if (bounds.Width > 60 && bounds.Height > 60)
+                    borderRegion.Exclude(new Rectangle(30, 30, bounds.Width - 60, bounds.Height - 60));
 
-            flashThread.SetApartmentState(ApartmentState.STA);
-            flashThread.Start();
-            flashThread.Join();
+                flash.Region = borderRegion;
+                flash.TransparencyKey = Color.Black;
+
+                flash.Shown += (s, e) =>
+                {
+                    for (int step = 1; step <= 4; step++)
+                    {
+                        flash.Opacity = step * 0.2;
+                        flash.Refresh();
+                        Application.DoEvents();
+                        Thread.Sleep(12);
+                    }
+
+                    Thread.Sleep(35);
+
+                    for (int step = 3; step >= 0; step--)
+                    {
+                        flash.Opacity = step * 0.2;
+                        flash.Refresh();
+                        Application.DoEvents();
+                        Thread.Sleep(12);
+                    }
+
+                    flash.Close();
+                };
+
+                // Returns only after the overlay closes, so it cannot appear
+                // in the screenshot captured immediately afterwards.
+                flash.ShowDialog();
+            }
         }
 
         private static Rectangle GetDpiScaledBounds(Rectangle bounds, IntPtr hMonitor)
