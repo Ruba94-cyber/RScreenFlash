@@ -140,7 +140,8 @@ namespace RScreenFlash
                             CopyPixelOperation.SourceCopy);
                     }
 
-                    Clipboard.SetImage(bmp);
+                    // A busy clipboard must not prevent saving the screenshot.
+                    TryCopyToClipboard(bmp);
 
                     string folder = Path.Combine(
                         Environment.GetFolderPath(Environment.SpecialFolder.MyPictures),
@@ -187,6 +188,27 @@ namespace RScreenFlash
                     "Error",
                     MessageBoxButtons.OK,
                     MessageBoxIcon.Error);
+            }
+        }
+
+        private static void TryCopyToClipboard(Bitmap bitmap)
+        {
+            // Clipboard contention is transient (e.g. another application owns it).
+            // Retry briefly without persisting or transmitting image data.
+            for (int attempt = 0; attempt < 3; attempt++)
+            {
+                try
+                {
+                    Clipboard.SetImage(bitmap);
+                    return;
+                }
+                catch (ExternalException)
+                {
+                    if (attempt == 2)
+                        return;
+
+                    Thread.Sleep(25);
+                }
             }
         }
 
