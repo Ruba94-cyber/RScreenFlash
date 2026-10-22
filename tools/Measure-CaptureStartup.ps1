@@ -41,8 +41,8 @@ namespace RScreenFlashBench
 {
     public sealed class SyntheticBackdrop : IDisposable
     {
-        private readonly ManualResetEventSlim ready = new ManualResetEventSlim(false);
         private readonly Thread thread;
+        private volatile bool ready;
         private Form form;
         private Exception startupError;
 
@@ -51,7 +51,9 @@ namespace RScreenFlashBench
             thread = new Thread(Show) { IsBackground = true, Name = "SyntheticCaptureBenchmarkBackdrop" };
             thread.SetApartmentState(ApartmentState.STA);
             thread.Start();
-            if (!ready.Wait(TimeSpan.FromSeconds(10)))
+            for (int attempt = 0; attempt < 1000 && !ready; attempt++)
+                Thread.Sleep(10);
+            if (!ready)
                 throw new TimeoutException("Synthetic desktop did not start.");
             if (startupError != null)
                 throw new InvalidOperationException("Synthetic desktop failed to start.", startupError);
@@ -88,13 +90,13 @@ namespace RScreenFlashBench
                     using (Brush textBrush = new SolidBrush(Color.White))
                         args.Graphics.DrawString("SYNTHETIC CAPTURE TEST", font, textBrush, 32f, 32f);
                 };
-                form.Shown += (sender, args) => ready.Set();
+                form.Shown += (sender, args) => ready = true;
                 Application.Run(form);
             }
             catch (Exception ex)
             {
                 startupError = ex;
-                ready.Set();
+                ready = true;
             }
         }
 
@@ -107,7 +109,6 @@ namespace RScreenFlashBench
             }
             catch { }
             thread.Join(TimeSpan.FromSeconds(3));
-            ready.Dispose();
         }
     }
 

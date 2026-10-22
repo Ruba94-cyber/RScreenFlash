@@ -12,18 +12,24 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Build Release x64
+      - name: Validate PowerShell scripts
         shell: pwsh
         run: |
-          $msbuild = & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -latest -requires Microsoft.Component.MSBuild -find 'MSBuild\**\Bin\MSBuild.exe' | Select-Object -First 1
-          if (-not $msbuild) { throw 'MSBuild not found' }
-          & $msbuild RScreenFlash.csproj /t:Rebuild /p:Configuration=Release /p:Platform=x64 /v:minimal
+          foreach ($path in @('tools\Measure-CaptureStartup.ps1', 'tools\Package-ReleaseCandidate.ps1')) {
+            $tokens = $null
+            $errors = $null
+            [System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path $path), [ref]$tokens, [ref]$errors) | Out-Null
+            if ($errors.Count -gt 0) { $errors | ForEach-Object { Write-Error "$path`: $($_.Message)" }; exit 1 }
+          }
+      - name: Build and package Release x64 candidate
+        shell: pwsh
+        run: |
+          $output = Join-Path $env:RUNNER_TEMP 'RScreenFlash-release-candidates'
+          & .\tools\Package-ReleaseCandidate.ps1 -OutputDirectory $output
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          if (-not (Test-Path 'bin\x64\Release\RScreenFlash.exe')) { throw 'Release executable missing' }
-      - name: Validate benchmark script syntax
-        shell: pwsh
-        run: |
-          $tokens = $null
-          $errors = $null
-          [System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path 'tools\Measure-CaptureStartup.ps1'), [ref]$tokens, [ref]$errors) | Out-Null
-          if ($errors.Count -gt 0) { $errors | ForEach-Object { Write-Error $_.Message }; exit 1 }
+      - uses: actions/upload-artifact@v4
+        with:
+          name: RScreenFlash-1.0.1-rc.1-windows-x64
+          path: ${{ runner.temp }}/RScreenFlash-release-candidates/*
+          if-no-files-found: error
+          retention-days: 14
