@@ -103,14 +103,12 @@ namespace RScreenFlash
                 if (bounds.Width > 0 && bounds.Height > 0)
                 {
                     RunFlash(bounds);
-                    Thread.Sleep(200); // Wait for the flash animation to finish
                 }
             }
             else
             {
                 bounds = GetMonitorBoundsFromCursor();
                 RunFlash(bounds);
-                Thread.Sleep(200); // Wait for the flash animation to finish
             }
 
             CaptureAndSaveScreenshot(bounds);
@@ -152,7 +150,7 @@ namespace RScreenFlash
                         Directory.CreateDirectory(folder);
 
                     int counter = 1;
-                    foreach (string file in Directory.GetFiles(folder, "screen_*.png"))
+                    foreach (string file in Directory.EnumerateFiles(folder, "screen_*.png"))
                     {
                         string name = Path.GetFileNameWithoutExtension(file);
                         if (!name.StartsWith("screen_", StringComparison.OrdinalIgnoreCase))
@@ -302,23 +300,23 @@ namespace RScreenFlash
 
                         flash.Shown += (s, e) =>
                         {
-                            for (double op = 0.0; op <= 0.8; op += 0.1)
+                            for (int step = 1; step <= 4; step++)
                             {
-                                flash.Opacity = op;
+                                flash.Opacity = step * 0.2;
                                 flash.Refresh();
                                 Application.DoEvents();
-                                Thread.Sleep(20);
+                                Thread.Sleep(12);
                             }
 
                             Application.DoEvents();
-                            Thread.Sleep(150);
+                            Thread.Sleep(35);
 
-                            for (double op = 0.8; op >= 0.0; op -= 0.1)
+                            for (int step = 3; step >= 0; step--)
                             {
-                                flash.Opacity = op;
+                                flash.Opacity = step * 0.2;
                                 flash.Refresh();
                                 Application.DoEvents();
-                                Thread.Sleep(20);
+                                Thread.Sleep(12);
                             }
 
                             flash.Close();
