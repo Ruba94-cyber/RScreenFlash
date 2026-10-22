@@ -24,7 +24,7 @@ namespace RScreenFlash
             this.KeyPreview = true;
             this.Cursor = Cursors.Cross;
             this.ShowInTaskbar = false;
-            this.WindowState = FormWindowState.Maximized;
+            this.WindowState = FormWindowState.Normal;
 
             virtualScreen = GetTrueVirtualScreen();
             this.StartPosition = FormStartPosition.Manual;
@@ -175,15 +175,6 @@ namespace RScreenFlash
                 EnsureSelectionScreen();
 
             return selectionScreen;
-        }
-
-        protected override void SetVisibleCore(bool value)
-        {
-            base.SetVisibleCore(value);
-            if (value)
-            {
-                this.WindowState = FormWindowState.Maximized;
-            }
         }
 
         private void UpdateSelectionRects(Point currentClient)

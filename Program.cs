@@ -1,8 +1,11 @@
 using System;
 using System.Drawing;
 using System.Drawing.Imaging;
+using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Runtime.InteropServices;
+using System.Text;
 using System.Threading;
 using System.Windows.Forms;
 
@@ -10,6 +13,17 @@ namespace RScreenFlash
 {
     static class Program
     {
+        private static Stopwatch s_applicationStopwatch;
+        private static string s_benchmarkTimingsPath;
+        private static bool s_shiftMode;
+        private static double s_captureDurationMilliseconds;
+        private static double s_timeToCaptureMilliseconds;
+        private static double s_pngWriteDurationMilliseconds;
+        private static double s_timeToSaveMilliseconds;
+        private static double s_clipboardDurationMilliseconds;
+        private static double s_timeToClipboardMilliseconds;
+        private static bool s_clipboardAvailable;
+
         private enum PROCESS_DPI_AWARENESS
         {
             PROCESS_DPI_UNAWARE = 0,
@@ -83,44 +97,54 @@ namespace RScreenFlash
         [STAThread]
         static void Main()
         {
-            InitializeDpiAwareness();
+            s_applicationStopwatch = Stopwatch.StartNew();
+            s_benchmarkTimingsPath = Environment.GetEnvironmentVariable("RSCREENFLASH_BENCHMARK_TIMINGS");
+            s_shiftMode = (Control.ModifierKeys & Keys.Shift) == Keys.Shift;
 
-            bool isPartial = (Control.ModifierKeys & Keys.Shift) == Keys.Shift;
-
-            Rectangle bounds;
-            Application.EnableVisualStyles();
-            Application.SetCompatibleTextRenderingDefault(false);
-
-            if (isPartial)
+            try
             {
-                using (var selector = new SelectionForm())
+                InitializeDpiAwareness();
+                Application.EnableVisualStyles();
+                Application.SetCompatibleTextRenderingDefault(false);
+
+                Rectangle bounds;
+                if (s_shiftMode)
                 {
-                    if (selector.ShowDialog() != DialogResult.OK)
-                        return;
-                    bounds = selector.SelectedRegion;
+                    using (var selector = new SelectionForm())
+                    {
+                        if (selector.ShowDialog() != DialogResult.OK)
+                            return;
+                        bounds = selector.SelectedRegion;
+                    }
+                }
+                else
+                {
+                    bounds = GetMonitorBoundsFromCursor();
                 }
 
-                if (bounds.Width > 0 && bounds.Height > 0)
+                if (CaptureAndSaveScreenshot(bounds))
                 {
+                    // Save the image before showing feedback. The overlay can
+                    // never delay capture or PNG creation or appear in the image.
                     RunFlash(bounds);
-                    Thread.Sleep(200); // Wait for the flash animation to finish
                 }
             }
-            else
+            finally
             {
-                bounds = GetMonitorBoundsFromCursor();
-                RunFlash(bounds);
-                Thread.Sleep(200); // Wait for the flash animation to finish
+                s_applicationStopwatch.Stop();
+                WriteBenchmarkTimings();
             }
-
-            CaptureAndSaveScreenshot(bounds);
         }
 
-        private static void CaptureAndSaveScreenshot(Rectangle bounds)
+        private static bool CaptureAndSaveScreenshot(Rectangle bounds)
         {
             if (bounds.Width <= 0 || bounds.Height <= 0)
-                return;
+            {
+                Environment.ExitCode = 1;
+                return false;
+            }
 
+            Stopwatch captureStopwatch = Stopwatch.StartNew();
             try
             {
                 using (Bitmap bmp = new Bitmap(bounds.Width, bounds.Height, PixelFormat.Format32bppArgb))
@@ -142,53 +166,159 @@ namespace RScreenFlash
                             CopyPixelOperation.SourceCopy);
                     }
 
-                    Clipboard.SetImage(bmp);
+                    captureStopwatch.Stop();
+                    s_captureDurationMilliseconds = captureStopwatch.Elapsed.TotalMilliseconds;
+                    s_timeToCaptureMilliseconds = s_applicationStopwatch.Elapsed.TotalMilliseconds;
 
-                    string folder = Path.Combine(
-                        Environment.GetFolderPath(Environment.SpecialFolder.MyPictures),
-                        "Screenshots");
+                    string benchmarkFolder = Environment.GetEnvironmentVariable("RSCREENFLASH_BENCHMARK_OUTPUT_DIRECTORY");
+                    string folder = string.IsNullOrWhiteSpace(benchmarkFolder)
+                        ? Path.Combine(
+                            Environment.GetFolderPath(Environment.SpecialFolder.MyPictures),
+                            "Screenshots")
+                        : Path.GetFullPath(benchmarkFolder);
 
+                    Stopwatch saveStopwatch = Stopwatch.StartNew();
                     if (!Directory.Exists(folder))
                         Directory.CreateDirectory(folder);
 
-                    int counter = 1;
-                    foreach (string file in Directory.GetFiles(folder, "screen_*.png"))
+                    // A timestamp and a random suffix avoid a full directory scan
+                    // even when thousands of screenshots already exist.
+                    string timestamp = DateTime.Now.ToString("yyyy-MM-dd_HH-mm-ss-fff");
+                    // CreateNew atomically prevents concurrent captures from
+                    // overwriting one another, without scanning the folder.
+                    for (int attempt = 0; ; attempt++)
                     {
-                        string name = Path.GetFileNameWithoutExtension(file);
-                        if (!name.StartsWith("screen_", StringComparison.OrdinalIgnoreCase))
-                            continue;
+                        if (attempt >= 10)
+                            throw new IOException("Unable to allocate a unique screenshot filename.");
 
-                        string remainder = name.Substring("screen_".Length);
-                        int separatorIndex = remainder.IndexOf('_');
-                        string numericPart = separatorIndex >= 0 ? remainder.Substring(0, separatorIndex) : remainder;
-
-                        if (int.TryParse(numericPart, out int existing) && existing >= counter)
+                        string suffix = Guid.NewGuid().ToString("N").Substring(0, 8);
+                        string filePath = Path.Combine(folder, $"screen_{timestamp}_{suffix}.png");
+                        FileStream stream;
+                        try
                         {
-                            counter = existing + 1;
+                            stream = new FileStream(
+                                filePath, FileMode.CreateNew, FileAccess.Write, FileShare.None);
                         }
+                        catch (IOException)
+                        {
+                            // Only a filename collision should be retried.
+                            // Do not hide permission, disk, or filesystem errors.
+                            if (!File.Exists(filePath))
+                                throw;
+                            continue;
+                        }
+
+                        try
+                        {
+                            using (stream)
+                            {
+                                Stopwatch pngWriteStopwatch = Stopwatch.StartNew();
+                                bmp.Save(stream, ImageFormat.Png);
+                                pngWriteStopwatch.Stop();
+                                s_pngWriteDurationMilliseconds = pngWriteStopwatch.Elapsed.TotalMilliseconds;
+                            }
+                        }
+                        catch
+                        {
+                            stream.Dispose();
+                            // Remove an incomplete file created by this process.
+                            try { File.Delete(filePath); }
+                            catch (IOException) { }
+                            catch (UnauthorizedAccessException) { }
+                            throw;
+                        }
+                        break;
                     }
 
-                    string timestamp = DateTime.Now.ToString("yyyy-MM-dd_HH-mm-ss");
-                    string filename = $"screen_{counter}_{timestamp}.png";
-                    string filePath = Path.Combine(folder, filename);
+                    saveStopwatch.Stop();
+                    s_timeToSaveMilliseconds = s_applicationStopwatch.Elapsed.TotalMilliseconds;
 
-                    while (File.Exists(filePath))
-                    {
-                        counter++;
-                        filename = $"screen_{counter}_{timestamp}.png";
-                        filePath = Path.Combine(folder, filename);
-                    }
-
-                    bmp.Save(filePath, ImageFormat.Png);
+                    // Saving is independent of clipboard availability.
+                    // Copy only after the PNG has been safely written.
+                    Stopwatch clipboardStopwatch = Stopwatch.StartNew();
+                    s_clipboardAvailable = TryCopyToClipboard(bmp);
+                    clipboardStopwatch.Stop();
+                    s_clipboardDurationMilliseconds = clipboardStopwatch.Elapsed.TotalMilliseconds;
+                    s_timeToClipboardMilliseconds = s_applicationStopwatch.Elapsed.TotalMilliseconds;
                 }
+
+                return true;
             }
             catch (Exception ex)
             {
+                Environment.ExitCode = 1;
                 MessageBox.Show(
                     $"An error occurred while capturing the screen: {ex.Message}",
                     "Error",
                     MessageBoxButtons.OK,
                     MessageBoxIcon.Error);
+                return false;
+            }
+            finally
+            {
+                if (captureStopwatch.IsRunning)
+                {
+                    captureStopwatch.Stop();
+                    s_captureDurationMilliseconds = captureStopwatch.Elapsed.TotalMilliseconds;
+                }
+            }
+        }
+
+        private static bool TryCopyToClipboard(Bitmap bitmap)
+        {
+            // Clipboard contention is transient (e.g. another application owns it).
+            // Retry briefly without persisting or transmitting image data.
+            for (int attempt = 0; attempt < 3; attempt++)
+            {
+                try
+                {
+                    Clipboard.SetImage(bitmap);
+                    return true;
+                }
+                catch (ExternalException)
+                {
+                    if (attempt == 2)
+                        return false;
+
+                    Thread.Sleep(25);
+                }
+            }
+
+            return false;
+        }
+
+        private static void WriteBenchmarkTimings()
+        {
+            if (string.IsNullOrWhiteSpace(s_benchmarkTimingsPath))
+                return;
+
+            try
+            {
+                string path = Path.GetFullPath(s_benchmarkTimingsPath);
+                string line = string.Format(
+                    CultureInfo.InvariantCulture,
+                    "Mode,CaptureDurationMs,TimeToCaptureMs,PngWriteDurationMs,TimeToSaveMs,ClipboardDurationMs,TimeToClipboardMs,MainDurationMs,ClipboardAvailable,ExitCode{0}{1},{2:F3},{3:F3},{4:F3},{5:F3},{6:F3},{7:F3},{8:F3},{9},{10}{0}",
+                    Environment.NewLine,
+                    s_shiftMode ? "Shift" : "Standard",
+                    s_captureDurationMilliseconds,
+                    s_timeToCaptureMilliseconds,
+                    s_pngWriteDurationMilliseconds,
+                    s_timeToSaveMilliseconds,
+                    s_clipboardDurationMilliseconds,
+                    s_timeToClipboardMilliseconds,
+                    s_applicationStopwatch.Elapsed.TotalMilliseconds,
+                    s_clipboardAvailable,
+                    Environment.ExitCode);
+
+                byte[] data = Encoding.UTF8.GetBytes(line);
+                using (var stream = new FileStream(path, FileMode.CreateNew, FileAccess.Write, FileShare.None))
+                {
+                    stream.Write(data, 0, data.Length);
+                }
+            }
+            catch
+            {
+                // Benchmark diagnostics are opt-in and must never affect capture.
             }
         }
 
@@ -275,66 +405,52 @@ namespace RScreenFlash
 
         private static void RunFlash(Rectangle bounds)
         {
-            Thread flashThread = new Thread(() =>
+            // Main is already STA. Reuse its UI thread rather than starting
+            // another STA thread and waiting for it to terminate.
+            using (Form flash = new Form
             {
-                using (Form flash = new Form
-                {
-                    StartPosition = FormStartPosition.Manual,
-                    Location = bounds.Location,
-                    Size = bounds.Size,
-                    BackColor = Color.Cyan,
-                    FormBorderStyle = FormBorderStyle.None,
-                    TopMost = true,
-                    ShowInTaskbar = false,
-                    Opacity = 0.0
-                })
-                {
-                    using (Region borderRegion = new Region(new Rectangle(0, 0, bounds.Width, bounds.Height)))
-                    {
-                        if (bounds.Width > 60 && bounds.Height > 60)
-                        {
-                            borderRegion.Exclude(new Rectangle(30, 30, bounds.Width - 60, bounds.Height - 60));
-                        }
-
-                        flash.Region = borderRegion;
-                        flash.BackColor = Color.Cyan;
-                        flash.TransparencyKey = Color.Black;
-
-                        flash.Shown += (s, e) =>
-                        {
-                            for (double op = 0.0; op <= 0.8; op += 0.1)
-                            {
-                                flash.Opacity = op;
-                                flash.Refresh();
-                                Application.DoEvents();
-                                Thread.Sleep(20);
-                            }
-
-                            Application.DoEvents();
-                            Thread.Sleep(150);
-
-                            for (double op = 0.8; op >= 0.0; op -= 0.1)
-                            {
-                                flash.Opacity = op;
-                                flash.Refresh();
-                                Application.DoEvents();
-                                Thread.Sleep(20);
-                            }
-
-                            flash.Close();
-                        };
-
-                        Application.Run(flash);
-                    }
-                }
+                StartPosition = FormStartPosition.Manual,
+                Location = bounds.Location,
+                Size = bounds.Size,
+                BackColor = Color.Cyan,
+                FormBorderStyle = FormBorderStyle.None,
+                TopMost = true,
+                ShowInTaskbar = false,
+                Opacity = 0.0
             })
+            using (Region borderRegion = new Region(new Rectangle(0, 0, bounds.Width, bounds.Height)))
             {
-                IsBackground = true
-            };
+                if (bounds.Width > 60 && bounds.Height > 60)
+                    borderRegion.Exclude(new Rectangle(30, 30, bounds.Width - 60, bounds.Height - 60));
 
-            flashThread.SetApartmentState(ApartmentState.STA);
-            flashThread.Start();
-            flashThread.Join();
+                flash.Region = borderRegion;
+
+                // Keep feedback brief and use the existing UI message loop.
+                using (var timer = new System.Windows.Forms.Timer { Interval = 12 })
+                {
+                    int frame = 0;
+                    timer.Tick += (s, e) =>
+                    {
+                        frame++;
+                        if (frame <= 2)
+                            flash.Opacity = frame * 0.4;
+                        else if (frame == 3)
+                            flash.Opacity = 0.8;
+                        else if (frame <= 5)
+                            flash.Opacity = (6 - frame) * 0.2;
+                        else
+                        {
+                            timer.Stop();
+                            flash.Close();
+                        }
+                    };
+                    flash.Shown += (s, e) => timer.Start();
+                    flash.FormClosed += (s, e) => timer.Stop();
+
+                    // This runs only after capture, save, and clipboard retries.
+                    flash.ShowDialog();
+                }
+            }
         }
 
         private static Rectangle GetDpiScaledBounds(Rectangle bounds, IntPtr hMonitor)
