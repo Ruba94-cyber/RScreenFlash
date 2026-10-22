@@ -150,15 +150,32 @@ namespace RScreenFlash
                     // A timestamp and a random suffix avoid a full directory scan
                     // even when thousands of screenshots already exist.
                     string timestamp = DateTime.Now.ToString("yyyy-MM-dd_HH-mm-ss-fff");
-                    string filePath;
-                    do
+                    // CreateNew atomically prevents concurrent captures from
+                    // overwriting one another, without scanning the folder.
+                    for (int attempt = 0; ; attempt++)
                     {
-                        string suffix = Guid.NewGuid().ToString("N").Substring(0, 8);
-                        filePath = Path.Combine(folder, $"screen_{timestamp}_{suffix}.png");
-                    }
-                    while (File.Exists(filePath));
+                        if (attempt >= 10)
+                            throw new IOException("Unable to allocate a unique screenshot filename.");
 
-                    bmp.Save(filePath, ImageFormat.Png);
+                        string suffix = Guid.NewGuid().ToString("N").Substring(0, 8);
+                        string filePath = Path.Combine(folder, $"screen_{timestamp}_{suffix}.png");
+                        try
+                        {
+                            using (FileStream stream = new FileStream(
+                                filePath, FileMode.CreateNew, FileAccess.Write, FileShare.None))
+                            {
+                                bmp.Save(stream, ImageFormat.Png);
+                            }
+                            break;
+                        }
+                        catch (IOException)
+                        {
+                            // Retry only when another capture already created
+                            // this exact filename; propagate all other I/O errors.
+                            if (!File.Exists(filePath))
+                                throw;
+                        }
+                    }
 
                     // Saving is independent of clipboard availability.
                     // Copy only after the PNG has been safely written.
