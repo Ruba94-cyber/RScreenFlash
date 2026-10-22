@@ -2,7 +2,8 @@ param(
     [Parameter(Mandatory = $true)]
     [string]$Executable,
     [int]$Runs = 5,
-    [int]$TimeoutSeconds = 15
+    [int]$TimeoutSeconds = 15,
+    [string]$CsvPath
 )
 
 $ErrorActionPreference = 'Stop'
@@ -62,6 +63,11 @@ for ($run = 1; $run -le $Runs; $run++) {
     }
 }
 $results | Format-Table -AutoSize
+if ($CsvPath) {
+    # Explicit opt-in: save only timing/count metadata, never screenshots.
+    $results | Export-Csv -LiteralPath $CsvPath -NoTypeInformation -Encoding UTF8
+    Write-Host 'Timing results written to the requested CSV path.'
+}
 if ($results.Count -gt 1) {
     $later = @($results | Select-Object -Skip 1 | ForEach-Object { $_.ElapsedMs } |
         Sort-Object)
