@@ -40,10 +40,29 @@ Screenshots are stored in the following directory:
 Files use the naming pattern:
 
 ```
-screen_<number>_<timestamp>.png
+screen_<timestamp>_<random-id>.png
 ```
 
-Example: `screen_001_20240929_143022.png`
+Example: `screen_20261022_160000-123_a1b2c3d4.png`
+
+## Performance and privacy verification
+
+This utility captures the currently visible screen and saves the image locally.
+Test it only with non-sensitive content visible. It does not upload captures.
+
+Before merging performance changes, verify on Windows 10/11 with .NET Framework 4.8:
+
+1. Build the Release x64 configuration.
+2. Display a neutral test window without personal or confidential information.
+3. Launch normally, confirm the cyan outline disappears before capture, and verify the PNG and clipboard image.
+4. Repeat several times, comparing the first launch with subsequent launches.
+5. Hold Shift while launching, select a region, and confirm the selected region is saved.
+6. Cancel selection with Escape and confirm no screenshot is saved.
+7. Repeat with two monitors and different display scaling settings.
+8. Temporarily occupy the clipboard with a separate test process; confirm a PNG is still saved.
+9. Test a screenshot folder with many existing files; ensure new filenames are unique.
+
+No screenshots or machine-specific logs need to be committed to this repository.
 
 ## Why Choose RScreenFlash?
 
