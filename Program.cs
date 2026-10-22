@@ -354,6 +354,7 @@ namespace RScreenFlash
                     };
                     flash.Shown += (s, e) => timer.Start();
                     flash.FormClosed += (s, e) => timer.Stop();
+                    flash.FormClosed += (s, e) => timer.Stop();
 
                     // Returns only after the overlay closes, so it cannot appear
                     // in the screenshot captured immediately afterwards.
