@@ -1,6 +1,8 @@
-# RScreenFlash
+# RBG - RScreenFlash
 
-RScreenFlash is a fast, lightweight screenshot utility for Windows designed to deliver professional captures with zero fuss.
+RBG - RScreenFlash is a fast, lightweight screenshot utility for Windows designed to deliver professional captures with zero fuss.
+
+Windows release packages are unsigned because no Authenticode certificate is available. The executable metadata identifies Paolo Rubagotti and `paolo.ruba.1913@gmail.com`; Windows may show an unknown publisher notice.
 
 ## Key Features
 
@@ -16,18 +18,22 @@ RScreenFlash is a fast, lightweight screenshot utility for Windows designed to d
 
 ✅ **Minimal footprint** – Small, responsive UI that stays out of your way.
 
-## How to Use RScreenFlash
+## How to Use RBG - RScreenFlash
 
 ### Full-screen capture
-1. Launch RScreenFlash.
+1. Launch `RBG - RScreenFlash.exe`.
 2. The active monitor briefly highlights with a cyan border.
 3. The screenshot is saved and copied to the clipboard automatically.
 
 ### Custom area capture
-1. Hold **Shift** while starting the application.
+1. Hold **Shift** while starting `RBG - RScreenFlash.exe`.
 2. A transparent overlay covers all connected monitors.
 3. Click and drag to select the area you want to capture.
 4. The selected region is saved and placed on the clipboard.
+
+## Release download
+
+Download `RBG-RScreenFlash-1.0.1-windows-x64.zip` from GitHub Releases, extract the archive, then run `RBG - RScreenFlash.exe`.
 
 ## File Organization
 
@@ -70,7 +76,7 @@ Build the application in Release mode on Windows, then open PowerShell
 from the repository root and run:
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\Measure-CaptureStartup.ps1 -Executable .\bin\x64\Release\RScreenFlash.exe -Runs 5 -ShiftRuns 5 -CancelRuns 1 -CsvPath .\capture-times.csv
+powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\Measure-CaptureStartup.ps1 -Executable ".\bin\x64\Release\RBG - RScreenFlash.exe" -Runs 5 -ShiftRuns 5 -CancelRuns 1 -CsvPath .\capture-times.csv
 ```
 
 The harness displays a synthetic test backdrop, measures standard and Shift

@@ -26,7 +26,7 @@ if (Get-Process -Name $processName -ErrorAction SilentlyContinue) {
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 if (-not ('RScreenFlashBench.Native' -as [type])) {
-    $references = @([System.Windows.Forms.Form].Assembly.Location, [System.Drawing.Bitmap].Assembly.Location)
+    $references = @([System.Threading.Thread].Assembly.Location, [System.Windows.Forms.Form].Assembly.Location, [System.Drawing.Bitmap].Assembly.Location)
     Add-Type -ReferencedAssemblies $references -TypeDefinition @'
 using System;
 using System.Diagnostics;

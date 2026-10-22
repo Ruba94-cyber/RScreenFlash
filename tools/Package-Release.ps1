@@ -6,7 +6,7 @@ param(
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
 if ([string]::IsNullOrWhiteSpace($OutputDirectory)) {
-    $OutputDirectory = Join-Path $root 'release-candidates'
+    $OutputDirectory = Join-Path $root 'release'
 }
 $project = Join-Path $root 'RScreenFlash.csproj'
 $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer\vswhere.exe'
@@ -24,9 +24,9 @@ Write-Host 'Building RScreenFlash Release x64...'
 & $msbuild $project /t:Rebuild /restore /p:Configuration=Release /p:Platform=x64 /v:minimal
 if ($LASTEXITCODE -ne 0) { throw "Release x64 build failed (exit $LASTEXITCODE)." }
 
-$exe = Join-Path $root 'bin\x64\Release\RScreenFlash.exe'
+$exe = Join-Path $root 'bin\x64\Release\RBG - RScreenFlash.exe'
 if (-not (Test-Path -LiteralPath $exe -PathType Leaf)) { throw "Release executable is missing: $exe" }
-$version = '1.0.1-rc.1'
+$version = '1.0.1'
 $info = [System.Diagnostics.FileVersionInfo]::GetVersionInfo($exe)
 if ($info.FileVersion -ne '1.0.1.0' -or $info.ProductVersion -ne $version) {
     throw "Unexpected executable version metadata: file=$($info.FileVersion), product=$($info.ProductVersion)"
@@ -41,13 +41,13 @@ $output = [System.IO.Path]::GetFullPath($OutputDirectory)
 New-Item -ItemType Directory -Path $output -Force | Out-Null
 $tempRoot = [System.IO.Path]::GetFullPath([System.IO.Path]::GetTempPath())
 $runId = [Guid]::NewGuid().ToString('N')
-$stage = Join-Path $tempRoot ('RScreenFlash-RC-' + $runId)
-$archiveTemp = Join-Path $tempRoot ("RScreenFlash-$runId.zip")
-$archiveName = "RScreenFlash-$version-windows-x64.zip"
+$stage = Join-Path $tempRoot ('RBG-RScreenFlash-Release-' + $runId)
+$archiveTemp = Join-Path $tempRoot ("RBG-RScreenFlash-$runId.zip")
+$archiveName = "RBG-RScreenFlash-$version-windows-x64.zip"
 New-Item -ItemType Directory -Path $stage | Out-Null
 
 try {
-    Copy-Item -LiteralPath $exe -Destination (Join-Path $stage 'RScreenFlash.exe')
+    Copy-Item -LiteralPath $exe -Destination (Join-Path $stage 'RBG - RScreenFlash.exe')
     foreach ($name in @('README.md', 'CHANGELOG.md', 'LICENSE')) {
         $source = Join-Path $root $name
         if (-not (Test-Path -LiteralPath $source -PathType Leaf)) { throw "Required release file is missing: $source" }
