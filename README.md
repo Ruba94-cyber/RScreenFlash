@@ -43,7 +43,7 @@ Files use the naming pattern:
 screen_<timestamp>_<random-id>.png
 ```
 
-Example: `screen_20261022_160000-123_a1b2c3d4.png`
+Example: `screen_2026-10-22_16-00-00-123_a1b2c3d4.png`
 
 ## Performance and privacy verification
 
@@ -74,7 +74,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\\tools\\Measure-CaptureSta
 ```
 
 Use a neutral desktop before running: each invocation takes a real screenshot.
-The script reports process elapsed time and the count of new PNG filenames;
+To save timing metadata locally for a baseline comparison, append `-CsvPath .\\baseline.csv` (choose a different filename for the optimized build). The script requires exactly one new PNG and a successful exit per run.\n\nThe script reports process elapsed time and the count of new PNG filenames;
 it does not inspect screenshot pixels or upload any data. This is an end-to-end
 startup measurement, not a breakdown of individual capture phases. The first
 run may include operating-system and .NET cold-start effects. Compare results
