@@ -29,20 +29,26 @@ for ($run = 1; $run -le $Runs; $run++) {
 
     $clock = [Diagnostics.Stopwatch]::StartNew()
     $process = Start-Process -FilePath $Executable -PassThru
+    $exitCode = $null
     try {
         if (-not $process.WaitForExit($TimeoutSeconds * 1000)) {
-            try { $process.Kill() } catch {}
+            try { $process.Kill(); $process.WaitForExit() } catch {}
             throw "Run $run timed out."
         }
         $clock.Stop()
-        if ($process.ExitCode -ne 0) {
-            Write-Warning "Run $run exited with code $($process.ExitCode)."
+        $exitCode = $process.ExitCode
+        if ($exitCode -ne 0) {
+            throw "Run $run exited with code $exitCode."
         }
 
         $created = @()
         if (Test-Path -LiteralPath $folder) {
             $created = @(Get-ChildItem -LiteralPath $folder -Filter 'screen_*.png' -File |
                 Where-Object { -not $before.ContainsKey($_.Name) })
+        }
+
+        if ($created.Count -ne 1) {
+            throw "Run $run created $($created.Count) new PNG files; expected exactly one."
         }
 
         $results += [pscustomobject]@{
