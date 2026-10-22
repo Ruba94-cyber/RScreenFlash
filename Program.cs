@@ -333,32 +333,32 @@ namespace RScreenFlash
                 flash.Region = borderRegion;
                 flash.TransparencyKey = Color.Black;
 
-                flash.Shown += (s, e) =>
+                // A WinForms timer keeps the UI message loop responsive while
+                // animating; no nested DoEvents or blocking sleeps are needed.
+                using (var timer = new System.Windows.Forms.Timer { Interval = 12 })
                 {
-                    for (int step = 1; step <= 4; step++)
+                    int frame = 0;
+                    timer.Tick += (s, e) =>
                     {
-                        flash.Opacity = step * 0.2;
-                        flash.Refresh();
-                        Application.DoEvents();
-                        Thread.Sleep(12);
-                    }
+                        frame++;
+                        if (frame <= 4)
+                            flash.Opacity = frame * 0.2;
+                        else if (frame <= 7)
+                            flash.Opacity = 0.8;
+                        else if (frame <= 11)
+                            flash.Opacity = (11 - frame) * 0.2;
+                        else
+                        {
+                            timer.Stop();
+                            flash.Close();
+                        }
+                    };
+                    flash.Shown += (s, e) => timer.Start();
 
-                    Thread.Sleep(35);
-
-                    for (int step = 3; step >= 0; step--)
-                    {
-                        flash.Opacity = step * 0.2;
-                        flash.Refresh();
-                        Application.DoEvents();
-                        Thread.Sleep(12);
-                    }
-
-                    flash.Close();
-                };
-
-                // Returns only after the overlay closes, so it cannot appear
-                // in the screenshot captured immediately afterwards.
-                flash.ShowDialog();
+                    // Returns only after the overlay closes, so it cannot appear
+                    // in the screenshot captured immediately afterwards.
+                    flash.ShowDialog();
+                }
             }
         }
 
