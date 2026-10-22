@@ -72,7 +72,7 @@ No screenshots or machine-specific logs need to be committed to this repository.
 
 ## Measuring first-launch latency
 
-Build the application in Release mode on Windows, then open PowerShell
+Build the application in Release mode on Windows, then open Windows PowerShell 5.1
 from the repository root and run:
 
 ```powershell
