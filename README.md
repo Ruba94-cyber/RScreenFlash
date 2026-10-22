@@ -64,6 +64,23 @@ Before merging performance changes, verify on Windows 10/11 with .NET Framework 
 
 No screenshots or machine-specific logs need to be committed to this repository.
 
+## Measuring first-launch latency
+
+Build the application in Release mode on Windows, then open PowerShell
+from the repository root and run:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\\tools\\Measure-CaptureStartup.ps1 -Executable .\\bin\\x64\\Release\\RScreenFlash.exe -Runs 5
+```
+
+Use a neutral desktop before running: each invocation takes a real screenshot.
+The script reports process elapsed time and the count of new PNG filenames;
+it does not inspect screenshot pixels or upload any data. This is an end-to-end
+startup measurement, not a breakdown of individual capture phases. The first
+run may include operating-system and .NET cold-start effects. Compare results
+with a baseline build under the same conditions before concluding that the
+initial-launch issue is resolved.
+
 ## Why Choose RScreenFlash?
 
 - **Speed** – Capture instantly without navigating menus.
