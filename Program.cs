@@ -150,33 +150,16 @@ namespace RScreenFlash
                     if (!Directory.Exists(folder))
                         Directory.CreateDirectory(folder);
 
-                    int counter = 1;
-                    foreach (string file in Directory.EnumerateFiles(folder, "screen_*.png"))
+                    // A timestamp and a random suffix avoid a full directory scan
+                    // even when thousands of screenshots already exist.
+                    string timestamp = DateTime.Now.ToString("yyyy-MM-dd_HH-mm-ss-fff");
+                    string filePath;
+                    do
                     {
-                        string name = Path.GetFileNameWithoutExtension(file);
-                        if (!name.StartsWith("screen_", StringComparison.OrdinalIgnoreCase))
-                            continue;
-
-                        string remainder = name.Substring("screen_".Length);
-                        int separatorIndex = remainder.IndexOf('_');
-                        string numericPart = separatorIndex >= 0 ? remainder.Substring(0, separatorIndex) : remainder;
-
-                        if (int.TryParse(numericPart, out int existing) && existing >= counter)
-                        {
-                            counter = existing + 1;
-                        }
+                        string suffix = Guid.NewGuid().ToString("N").Substring(0, 8);
+                        filePath = Path.Combine(folder, $"screen_{timestamp}_{suffix}.png");
                     }
-
-                    string timestamp = DateTime.Now.ToString("yyyy-MM-dd_HH-mm-ss");
-                    string filename = $"screen_{counter}_{timestamp}.png";
-                    string filePath = Path.Combine(folder, filename);
-
-                    while (File.Exists(filePath))
-                    {
-                        counter++;
-                        filename = $"screen_{counter}_{timestamp}.png";
-                        filePath = Path.Combine(folder, filename);
-                    }
+                    while (File.Exists(filePath));
 
                     bmp.Save(filePath, ImageFormat.Png);
                 }
