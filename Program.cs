@@ -140,9 +140,6 @@ namespace RScreenFlash
                             CopyPixelOperation.SourceCopy);
                     }
 
-                    // A busy clipboard must not prevent saving the screenshot.
-                    TryCopyToClipboard(bmp);
-
                     string folder = Path.Combine(
                         Environment.GetFolderPath(Environment.SpecialFolder.MyPictures),
                         "Screenshots");
@@ -162,6 +159,10 @@ namespace RScreenFlash
                     while (File.Exists(filePath));
 
                     bmp.Save(filePath, ImageFormat.Png);
+
+                    // Saving is independent of clipboard availability.
+                    // Copy only after the PNG has been safely written.
+                    TryCopyToClipboard(bmp);
                 }
             }
             catch (Exception ex)
