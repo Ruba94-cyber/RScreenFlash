@@ -15,7 +15,9 @@ jobs:
       - name: Build Release x64
         shell: pwsh
         run: |
-          & "$env:WINDIR\Microsoft.NET\Framework64\v4.0.30319\MSBuild.exe" RScreenFlash.csproj /t:Rebuild /p:Configuration=Release /p:Platform=x64 /v:minimal
+          $msbuild = & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -latest -requires Microsoft.Component.MSBuild -find 'MSBuild\**\Bin\MSBuild.exe' | Select-Object -First 1
+          if (-not $msbuild) { throw 'MSBuild not found' }
+          & $msbuild RScreenFlash.csproj /t:Rebuild /p:Configuration=Release /p:Platform=x64 /v:minimal
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           if (-not (Test-Path 'bin\x64\Release\RScreenFlash.exe')) { throw 'Release executable missing' }
       - name: Validate benchmark script syntax
