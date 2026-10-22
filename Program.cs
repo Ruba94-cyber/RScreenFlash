@@ -331,7 +331,6 @@ namespace RScreenFlash
                     borderRegion.Exclude(new Rectangle(30, 30, bounds.Width - 60, bounds.Height - 60));
 
                 flash.Region = borderRegion;
-                flash.TransparencyKey = Color.Black;
 
                 // A WinForms timer keeps the UI message loop responsive while
                 // animating; no nested DoEvents or blocking sleeps are needed.
@@ -354,6 +353,7 @@ namespace RScreenFlash
                         }
                     };
                     flash.Shown += (s, e) => timer.Start();
+                    flash.FormClosed += (s, e) => timer.Stop();
 
                     // Returns only after the overlay closes, so it cannot appear
                     // in the screenshot captured immediately afterwards.
